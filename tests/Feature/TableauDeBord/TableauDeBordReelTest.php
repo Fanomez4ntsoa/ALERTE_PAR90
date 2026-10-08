@@ -62,7 +62,7 @@ it("s'ouvre sur juillet 2026 avec les valeurs de l'annexe H", function () {
         ->and($t['trajectoire']['seuil'])->toBe('+0,50 point')
         ->and($t['trajectoire']['atteint'])->toBeFalse()
         ->and($t['signal']['disponible'])->toBeTrue()
-        ->and($t['signal']['bond'])->toBe('−0,05 point')
+        ->and($t['signal']['bond'])->toBe('−0,053 point')
         ->and($t['signal']['seuil'])->toBe('0,135 point')
         ->and($t['signal']['nombreBonds'])->toBe(31)
         ->and($t['signal']['voyant'])->toBeFalse()

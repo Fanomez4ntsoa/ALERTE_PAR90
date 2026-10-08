@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
+import InputError from '@/components/InputError.vue';
 import type { DecisionAffichee } from '@/types/registre';
 
-/** Une décision du registre : affichage, et au besoin compléter ou annuler. */
+/** Une décision du registre : lecture, et selon les droits compléter, corriger ou annuler. */
 const props = defineProps<{ decision: DecisionAffichee }>();
 
 const ouvert = ref<'completer' | 'corriger' | 'annuler' | null>(null);
@@ -17,73 +18,66 @@ const styleEtat: Record<DecisionAffichee['etat'], string> = {
     annulee: 'border-filet text-encre-2 line-through',
 };
 
-function completer(): void {
-    if (props.decision.urlCompleter) {
-        complement.patch(props.decision.urlCompleter, {
-            preserveScroll: true,
-            onSuccess: () => (ouvert.value = null),
-        });
+const options = {
+    preserveScroll: true,
+    onSuccess: () => (ouvert.value = null),
+};
+
+function envoyer(): void {
+    const d = props.decision;
+    if (ouvert.value === 'completer' && d.urlCompleter) {
+        complement.patch(d.urlCompleter, options);
+    } else if (ouvert.value === 'corriger' && d.urlCorriger) {
+        correction.patch(d.urlCorriger, options);
+    } else if (ouvert.value === 'annuler' && d.urlAnnuler) {
+        annulation.patch(d.urlAnnuler, options);
     }
 }
 
-function corriger(): void {
-    if (props.decision.urlCorriger) {
-        correction.patch(props.decision.urlCorriger, {
-            preserveScroll: true,
-            onSuccess: () => (ouvert.value = null),
-        });
-    }
-}
-
-function annuler(): void {
-    if (props.decision.urlAnnuler) {
-        annulation.patch(props.decision.urlAnnuler, {
-            preserveScroll: true,
-            onSuccess: () => (ouvert.value = null),
-        });
-    }
-}
+const champ =
+    'w-full rounded-md border border-filet bg-feuille px-2.5 py-1.5 text-sm text-encre focus-visible:outline-2 focus-visible:outline-prusse';
+const lien =
+    'text-[13px] font-medium text-prusse underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-prusse';
 </script>
 
 <template>
     <li
-        class="rounded-md border border-filet px-3 py-2 text-sm"
-        :class="{ 'bg-fond': decision.etat === 'annulee' }"
+        class="border-b border-filet py-3 last:border-0"
+        :class="{ 'text-encre-2': decision.etat === 'annulee' }"
     >
-        <div class="flex items-start gap-2">
-            <p
-                class="flex-1 font-medium"
-                :class="{ 'text-encre-2': decision.etat === 'annulee' }"
-            >
-                {{ decision.action }}
-            </p>
+        <div class="flex items-start gap-3">
+            <div class="min-w-0 flex-1">
+                <p class="text-[15px] leading-snug font-medium">
+                    {{ decision.action }}
+                </p>
+                <p class="chiffres mt-0.5 text-[13px] text-encre-2">
+                    Responsable : {{ decision.responsable }}, échéance le
+                    {{ decision.echeance }}
+                </p>
+                <p v-if="decision.resultat" class="mt-1 text-sm">
+                    <span class="font-semibold">Résultat :</span>
+                    {{ decision.resultat }}
+                </p>
+                <p v-if="decision.motifAnnulation" class="mt-1 text-sm">
+                    <span class="font-semibold">Motif d'annulation :</span>
+                    {{ decision.motifAnnulation }}
+                </p>
+                <p class="chiffres mt-1 text-[12px] text-encre-2">
+                    {{ decision.saisie }}.
+                    <template v-if="decision.complement">
+                        {{ decision.complement }}.</template
+                    >
+                    <template v-if="decision.annulation">
+                        {{ decision.annulation }}.</template
+                    >
+                </p>
+            </div>
             <span
-                class="rounded border px-1.5 py-0.5 text-xs whitespace-nowrap"
+                class="shrink-0 rounded border px-2 py-0.5 text-[12px] font-medium"
                 :class="styleEtat[decision.etat]"
                 >{{ decision.libelleEtat }}</span
             >
         </div>
-        <p class="text-xs text-encre-2">
-            Responsable : {{ decision.responsable }} · échéance
-            {{ decision.echeance }}
-        </p>
-        <p v-if="decision.resultat" class="mt-1 text-sm">
-            <span class="font-semibold">Résultat :</span>
-            {{ decision.resultat }}
-        </p>
-        <p v-if="decision.motifAnnulation" class="mt-1 text-sm">
-            <span class="font-semibold">Motif d'annulation :</span>
-            {{ decision.motifAnnulation }}
-        </p>
-        <p class="mt-1 text-[11px] text-encre-2">
-            {{ decision.saisie }}
-            <template v-if="decision.complement">
-                · {{ decision.complement }}</template
-            >
-            <template v-if="decision.annulation">
-                · {{ decision.annulation }}</template
-            >
-        </p>
 
         <div
             v-if="
@@ -91,12 +85,12 @@ function annuler(): void {
                 decision.urlCorriger ||
                 decision.urlAnnuler
             "
-            class="mt-1 flex gap-3 text-xs print:hidden"
+            class="mt-1.5 flex gap-4 print:hidden"
         >
             <button
                 v-if="decision.urlCompleter"
                 type="button"
-                class="underline hover:text-encre"
+                :class="lien"
                 @click="ouvert = ouvert === 'completer' ? null : 'completer'"
             >
                 Compléter
@@ -104,7 +98,7 @@ function annuler(): void {
             <button
                 v-if="decision.urlCorriger"
                 type="button"
-                class="underline hover:text-encre"
+                :class="lien"
                 @click="ouvert = ouvert === 'corriger' ? null : 'corriger'"
             >
                 Corriger le résultat
@@ -112,91 +106,81 @@ function annuler(): void {
             <button
                 v-if="decision.urlAnnuler"
                 type="button"
-                class="underline hover:text-encre"
+                :class="lien"
                 @click="ouvert = ouvert === 'annuler' ? null : 'annuler'"
             >
-                Annuler
+                Annuler la décision
             </button>
         </div>
 
         <form
-            v-if="ouvert === 'completer'"
-            class="mt-2 flex flex-col gap-1 print:hidden"
-            @submit.prevent="completer"
-        >
-            <label :for="`resultat-${decision.id}`" class="text-xs font-medium"
-                >Résultat</label
-            >
-            <textarea
-                :id="`resultat-${decision.id}`"
-                v-model="complement.resultat"
-                rows="2"
-                class="rounded border border-filet px-2 py-1 text-sm"
-            />
-            <p v-if="complement.errors.resultat" class="text-xs text-alerte">
-                {{ complement.errors.resultat }}
-            </p>
-            <button
-                type="submit"
-                :disabled="complement.processing"
-                class="self-start rounded bg-prusse px-3 py-1 text-xs text-feuille disabled:opacity-50"
-            >
-                Enregistrer le résultat
-            </button>
-        </form>
-
-        <form
-            v-if="ouvert === 'corriger'"
-            class="mt-2 flex flex-col gap-1 print:hidden"
-            @submit.prevent="corriger"
+            v-if="ouvert"
+            class="mt-2 flex flex-col gap-1.5 print:hidden"
+            @submit.prevent="envoyer"
         >
             <label
-                :for="`correction-${decision.id}`"
-                class="text-xs font-medium"
-                >Résultat corrigé (l'ancien reste dans le journal)</label
+                :for="`saisie-${decision.id}`"
+                class="text-[13px] font-medium"
+                >{{
+                    ouvert === 'completer'
+                        ? 'Résultat'
+                        : ouvert === 'corriger'
+                          ? "Résultat corrigé (l'ancien reste dans le journal)"
+                          : "Motif d'annulation (obligatoire)"
+                }}</label
             >
             <textarea
-                :id="`correction-${decision.id}`"
+                v-if="ouvert === 'completer'"
+                :id="`saisie-${decision.id}`"
+                v-model="complement.resultat"
+                rows="2"
+                :class="champ"
+            />
+            <textarea
+                v-else-if="ouvert === 'corriger'"
+                :id="`saisie-${decision.id}`"
                 v-model="correction.resultat"
                 rows="2"
-                class="rounded border border-filet px-2 py-1 text-sm"
+                :class="champ"
             />
-            <p v-if="correction.errors.resultat" class="text-xs text-alerte">
-                {{ correction.errors.resultat }}
-            </p>
-            <button
-                type="submit"
-                :disabled="correction.processing"
-                class="self-start rounded bg-prusse px-3 py-1 text-xs text-feuille disabled:opacity-50"
-            >
-                Enregistrer la correction
-            </button>
-        </form>
-
-        <form
-            v-if="ouvert === 'annuler'"
-            class="mt-2 flex flex-col gap-1 print:hidden"
-            @submit.prevent="annuler"
-        >
-            <label :for="`motif-${decision.id}`" class="text-xs font-medium"
-                >Motif d'annulation (obligatoire)</label
-            >
             <textarea
-                :id="`motif-${decision.id}`"
+                v-else
+                :id="`saisie-${decision.id}`"
                 v-model="annulation.motif"
                 rows="2"
-                class="rounded border border-filet px-2 py-1 text-sm"
+                :class="champ"
             />
-            <p v-if="annulation.errors.motif" class="text-xs text-alerte">
-                {{ annulation.errors.motif }}
-            </p>
-            <button
-                type="submit"
-                :disabled="annulation.processing"
-                class="self-start rounded border border-encre-2/60 px-3 py-1 text-xs disabled:opacity-50"
-            >
-                Annuler la décision
-            </button>
+            <InputError
+                :message="
+                    ouvert === 'completer'
+                        ? complement.errors.resultat
+                        : ouvert === 'corriger'
+                          ? correction.errors.resultat
+                          : annulation.errors.motif
+                "
+            />
+            <div class="flex gap-3">
+                <button
+                    type="submit"
+                    class="rounded-md bg-prusse px-3 py-1.5 text-[13px] font-medium text-feuille disabled:opacity-50"
+                    :disabled="
+                        complement.processing ||
+                        correction.processing ||
+                        annulation.processing
+                    "
+                >
+                    {{
+                        ouvert === 'completer'
+                            ? 'Enregistrer le résultat'
+                            : ouvert === 'corriger'
+                              ? 'Enregistrer la correction'
+                              : "Confirmer l'annulation"
+                    }}
+                </button>
+                <button type="button" :class="lien" @click="ouvert = null">
+                    Fermer
+                </button>
+            </div>
         </form>
     </li>
 </template>

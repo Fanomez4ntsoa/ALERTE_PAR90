@@ -7,7 +7,7 @@ export type TeinteNiveau = 'vert' | 'jaune' | 'rouge' | 'gris';
 export type LienMois = { valeur: string; libelle: string; url: string };
 
 export type Onglet = {
-    cle: 'synthese' | 'comprehension' | 'generations' | 'registre';
+    cle: 'synthese' | 'comprehension' | 'registre';
     libelle: string;
     url: string | null;
 };

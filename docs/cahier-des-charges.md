@@ -150,7 +150,7 @@ Aucune de ces valeurs n'est écrite dans le code.
 
 - Les taux sont stockés avec six décimales, le seuil du bond avec huit, les montants en ariary entiers.
 - Toute comparaison à un seuil utilise la valeur stockée, jamais la valeur arrondie affichée. Le seuil du bond est arrondi à 8 décimales avant la comparaison.
-- Affichage : deux décimales pour les taux et les écarts, trois pour le seuil du bond, une pour les parts des retards de plus de 180 jours et de plus d'un an dans le PAR90, montants en milliards d'ariary avec deux décimales.
+- Affichage : deux décimales pour les taux et les écarts, trois pour le bond et le seuil du bond, une pour les parts des retards de plus de 180 jours et de plus d'un an dans le PAR90, montants en milliards d'ariary avec deux décimales.
 
 ## 6. Niveaux d'alerte et statut
 
@@ -211,14 +211,20 @@ Les 33 mois du mémoire sont chargés en une fois. Leurs niveaux sont calculés 
 
 ## 8. Écran du tableau de bord
 
-Une seule page, six blocs de haut en bas, chacun répondant à une question. Un sélecteur de mois permet d'afficher n'importe quelle clôture ; la page s'ouvre sur la plus récente.
+Une seule page, six blocs répartis en trois onglets, chaque bloc répondant à une question. Un sélecteur de mois permet d'afficher n'importe quelle clôture ; la page s'ouvre sur la plus récente, onglet Synthèse. L'onglet et le mois figurent dans l'adresse ; changer de mois garde l'onglet.
+
+| Onglet | Blocs | Disposition |
+| --- | --- | --- |
+| Synthèse | 1 à 4 | Bandeau sur toute la largeur : à gauche le niveau en grand sur son aplat de couleur, au centre le motif, l'action attendue et la mention de calcul rétrospectif, à droite le statut par rapport à 5 % dans un cadre pointillé distinct du niveau. En dessous, la courbe sur environ deux tiers de la largeur, et à côté la trajectoire et le signal avancé empilés. |
+| Compréhension | 5 | Les huit indicateurs à gauche, le tableau des générations à droite. |
+| Registre | 6 | Le signal émis trois mois plus tôt en bandeau compact en haut, puis la liste des décisions du mois et, juste en dessous, le formulaire d'ajout. |
 
 | Bloc | Question | Contenu | Valeur attendue pour juillet 2026 |
 | --- | --- | --- | --- |
 | 1. Bandeau | Faut-il ouvrir une revue ? | Niveau coloré, motif, statut, action attendue | Normal, hors limite |
 | 2. Niveau de risque | Où en est le risque ? | PAR90 en taux et en montant ; courbe de tout l'historique avec une ligne horizontale à 5 % | 6,25 % ; 12,79 Md Ar |
 | 3. Trajectoire | Le PAR90 s'est-il dégradé sur trois mois ? | Hausse sur trois mois, comparée à +0,5 point | −0,25 point |
-| 4. Signal avancé | Une hausse se prépare-t-elle ? | Bond du mois, seuil du mois, voyant allumé ou éteint, nombre de bonds utilisés | Bond −0,05 ; seuil 0,135 ; éteint ; 31 bonds |
+| 4. Signal avancé | Une hausse se prépare-t-elle ? | Bond du mois, seuil du mois, voyant allumé ou éteint, nombre de bonds utilisés | Bond −0,053 ; seuil 0,135 ; éteint ; 31 bonds |
 | 5. Compréhension | Où regarder pendant la revue ? | Huit indicateurs sans seuil, voir ci-dessous | Voir ci-dessous |
 | 6. Registre | Qu'a-t-on décidé, et avait-on raison ? | Décisions du mois ; suivi des signaux arrivés à échéance | Voir section 9 |
 
@@ -242,7 +248,8 @@ Le bloc contient aussi le tableau des générations récentes : les 12 derniers 
 ### Règles d'affichage
 
 - Le niveau est toujours écrit en toutes lettres : la couleur seule ne suffit pas.
-- La page tient sur un écran d'ordinateur et s'imprime sur une feuille A4.
+- Chaque onglet tient sur un écran d'ordinateur (1366 × 768) sans défilement de page ; seule la liste des décisions peut défiler dans sa zone.
+- L'impression donne, quel que soit l'onglet, une feuille A4 paysage avec les blocs 1 à 5, en thème clair.
 - Un mois calculé rétrospectivement porte la mention « calcul rétrospectif » dans le bandeau.
 
 ## 9. Registre et vérification à trois mois

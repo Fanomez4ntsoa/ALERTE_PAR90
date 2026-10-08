@@ -172,7 +172,7 @@ final class TableauDeBord
 
         return [
             'disponible' => true,
-            'bond' => Format::ecart($c->bond),
+            'bond' => Format::ecart($c->bond, 3),
             'seuil' => Format::points($c->seuil_bond, 3),
             'voyant' => $allume,
             'libelleVoyant' => $allume ? 'Allumé' : 'Éteint',

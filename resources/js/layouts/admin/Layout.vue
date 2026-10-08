@@ -9,19 +9,26 @@ import {
     UserRound,
 } from '@lucide/vue';
 import { computed } from 'vue';
-import Heading from '@/components/Heading.vue';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
+import BarreSuperieure from '@/components/tableau/BarreSuperieure.vue';
+import { Toaster } from '@/components/ui/sonner';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { toUrl } from '@/lib/utils';
+import { dashboard } from '@/routes';
 import { imports, journal, parametres } from '@/routes/admin';
 import { edit as editAppearance } from '@/routes/appearance';
 import { edit as editProfile } from '@/routes/profile';
 import { edit as editSecurity } from '@/routes/security';
 import type { NavItem } from '@/types';
 
-/** Back-office : une section n'apparaît que si le rôle y donne accès. */
+/*
+ * Back-office : barre supérieure du produit, navigation latérale des six
+ * sections, contenu sur une feuille. Une section n'apparaît que si le rôle y
+ * donne accès ; le serveur refuse de toute façon (403).
+ */
+defineProps<{ breadcrumbs?: unknown }>();
+
 const page = usePage();
+const institution = computed(() => (page.props.institution as string) ?? '');
 const droits = computed(
     () =>
         (
@@ -50,47 +57,56 @@ const { isCurrentOrParentUrl } = useCurrentUrl();
 </script>
 
 <template>
-    <div class="px-4 py-6">
-        <Heading
-            title="Administration"
-            :description="
-                droits?.role
-                    ? `Gestion de l'outil. Rôle : ${droits.role}.`
-                    : 'Gestion de l\'outil.'
-            "
+    <div class="flex h-dvh min-h-[640px] flex-col bg-fond text-encre">
+        <BarreSuperieure
+            :institution="institution"
+            titre="Administration"
+            :retour="{ libelle: 'Tableau de bord', url: toUrl(dashboard()) }"
         />
 
-        <div class="flex flex-col lg:flex-row lg:space-x-12">
-            <aside class="w-full max-w-xl lg:w-56">
+        <div
+            class="mx-auto flex min-h-0 w-full max-w-[1400px] flex-1 gap-4 p-4"
+        >
+            <aside class="w-56 shrink-0">
                 <nav
-                    class="flex flex-col space-y-1 space-x-0"
-                    aria-label="Administration"
+                    class="flex flex-col gap-0.5"
+                    aria-label="Sections de l'administration"
                 >
-                    <Button
+                    <Link
                         v-for="item in sections"
                         :key="toUrl(item.href)"
-                        variant="ghost"
-                        :class="[
-                            'w-full justify-start',
-                            { 'bg-muted': isCurrentOrParentUrl(item.href) },
-                        ]"
-                        as-child
+                        :href="item.href"
+                        class="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium focus-visible:outline-2 focus-visible:outline-prusse"
+                        :class="
+                            isCurrentOrParentUrl(item.href)
+                                ? 'bg-feuille text-encre shadow-[inset_2px_0_0] shadow-prusse'
+                                : 'text-encre-2 hover:bg-feuille/60 hover:text-encre'
+                        "
+                        :aria-current="
+                            isCurrentOrParentUrl(item.href) ? 'page' : undefined
+                        "
                     >
-                        <Link :href="item.href">
-                            <component :is="item.icon" class="h-4 w-4" />
-                            {{ item.title }}
-                        </Link>
-                    </Button>
+                        <component
+                            :is="item.icon"
+                            class="size-4"
+                            aria-hidden="true"
+                        />
+                        {{ item.title }}
+                    </Link>
                 </nav>
+                <p v-if="droits?.role" class="mt-4 px-3 text-[12px] text-encre-2">
+                    Rôle : {{ droits.role }}
+                </p>
             </aside>
 
-            <Separator class="my-6 lg:hidden" />
-
-            <div class="flex-1 md:max-w-4xl">
-                <section class="space-y-8">
+            <main
+                class="min-h-0 flex-1 overflow-y-auto rounded-[10px] bg-feuille px-8 py-6"
+            >
+                <div class="max-w-4xl space-y-8">
                     <slot />
-                </section>
-            </div>
+                </div>
+            </main>
         </div>
+        <Toaster />
     </div>
 </template>

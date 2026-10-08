@@ -16,7 +16,6 @@ class TableauDeBordController extends Controller
     public const ONGLETS = [
         'synthese' => 'Synthèse',
         'comprehension' => 'Compréhension',
-        'generations' => 'Générations',
         'registre' => 'Registre',
     ];
 

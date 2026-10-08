@@ -4,7 +4,6 @@ import { computed } from 'vue';
 import BarreSuperieure from '@/components/tableau/BarreSuperieure.vue';
 import Impression from '@/components/tableau/Impression.vue';
 import OngletComprehension from '@/components/tableau/OngletComprehension.vue';
-import OngletGenerations from '@/components/tableau/OngletGenerations.vue';
 import OngletRegistre from '@/components/tableau/OngletRegistre.vue';
 import OngletSynthese from '@/components/tableau/OngletSynthese.vue';
 import type { Navigation, Onglet, Tableau } from '@/types/tableau';
@@ -25,7 +24,6 @@ const props = defineProps<{
 const contenus = {
     synthese: OngletSynthese,
     comprehension: OngletComprehension,
-    generations: OngletGenerations,
     registre: OngletRegistre,
 };
 

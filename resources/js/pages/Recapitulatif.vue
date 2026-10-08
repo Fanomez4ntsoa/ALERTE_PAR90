@@ -1,17 +1,20 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { ChevronLeft } from '@lucide/vue';
+import { computed } from 'vue';
+import BarreSuperieure from '@/components/tableau/BarreSuperieure.vue';
+import { aplatNiveau } from '@/types/tableau';
+import type { TeinteNiveau } from '@/types/tableau';
 
 /*
- * Récapitulatif de la vérification à trois mois (section 9) : une ligne par
- * clôture et les totaux par résultat. Valeurs préparées par le serveur.
+ * Récapitulatif de la vérification à trois mois (section 9) : les totaux par
+ * résultat, puis une ligne par clôture. Valeurs préparées par le serveur.
  */
 
 type Ligne = {
     mois: string;
     url: string;
     niveau: string;
-    couleur: 'vert' | 'jaune' | 'rouge' | 'gris';
+    couleur: TeinteNiveau;
     statut: string;
     hausseReelle: string;
     resultatCode: string;
@@ -27,135 +30,130 @@ type Total = {
     estResultat: boolean;
 };
 
-defineProps<{
+const props = defineProps<{
     institution: string;
     lignes: Ligne[];
     totaux: Total[];
     urlTableau: string;
 }>();
 
-const fondNiveau: Record<string, string> = {
-    vert: 'bg-emerald-700 text-white',
-    jaune: 'bg-amber-300 text-neutral-950',
-    rouge: 'bg-red-700 text-white',
-    gris: 'bg-neutral-500 text-white',
-};
+const resultats = computed(() => props.totaux.filter((t) => t.estResultat));
+const horsResultats = computed(() => props.totaux.filter((t) => !t.estResultat));
 </script>
 
 <template>
     <Head title="Récapitulatif de la vérification" />
 
-    <div class="min-h-screen bg-neutral-50 text-neutral-900 print:bg-white">
-        <header
-            class="flex items-center gap-6 border-b border-neutral-200 bg-white px-5 py-1.5 print:border-0 print:px-0"
-        >
-            <div class="mr-auto leading-tight">
-                <p class="text-base font-semibold">
-                    Vérification à trois mois : récapitulatif
-                </p>
-                <p class="text-xs text-neutral-600">{{ institution }}</p>
-            </div>
-            <Link
-                :href="urlTableau"
-                class="inline-flex items-center rounded-md border border-neutral-300 bg-white px-2 py-1 text-sm hover:bg-neutral-100 print:hidden"
-            >
-                <ChevronLeft class="size-4" aria-hidden="true" /> Tableau de
-                bord
-            </Link>
-        </header>
+    <div class="flex h-dvh min-h-[640px] flex-col overflow-hidden bg-fond text-encre">
+        <BarreSuperieure
+            :institution="institution"
+            titre="Récapitulatif de la vérification à trois mois"
+            :retour="{ libelle: 'Tableau de bord', url: urlTableau }"
+        />
 
-        <main class="flex flex-col gap-3 px-5 py-3 print:px-0">
+        <main class="mx-auto flex min-h-0 w-full max-w-[1760px] flex-1 flex-col gap-4 p-4">
             <section
-                class="rounded-lg border border-neutral-200 bg-white px-4 py-2"
+                class="shrink-0 rounded-[10px] bg-feuille px-6 py-4"
                 aria-labelledby="titre-totaux"
             >
-                <h2 id="titre-totaux" class="mb-2 text-sm font-semibold">
+                <h2 id="titre-totaux" class="text-[15px] font-semibold">
                     Totaux par résultat
-                </h2>
-                <ul class="flex flex-wrap gap-2">
-                    <li
-                        v-for="t in totaux"
-                        :key="t.code"
-                        class="min-w-36 rounded-md border px-3 py-1.5"
-                        :class="
-                            t.estResultat
-                                ? 'border-neutral-300'
-                                : 'border-dashed border-neutral-300 text-neutral-600'
-                        "
+                    <span class="ml-2 font-normal text-encre-2"
+                        >Le signal a-t-il été suivi d'une hausse ?</span
                     >
-                        <p class="text-2xl font-bold tabular-nums">
+                </h2>
+                <dl class="chiffres mt-3 flex items-stretch">
+                    <div
+                        v-for="t in resultats"
+                        :key="t.code"
+                        class="flex-1 border-l border-filet px-4 first:border-l-0 first:pl-0"
+                    >
+                        <dd class="text-[1.75rem] leading-none font-semibold">
                             {{ t.nombre }}
-                        </p>
-                        <p class="text-xs">{{ t.libelle }}</p>
-                    </li>
-                </ul>
-                <p class="mt-2 text-xs text-neutral-500">
-                    « Sans objet » (mois Non évalué) et « En attente » (mois t+3
-                    pas encore importé) ne sont pas des résultats et ne comptent
-                    dans aucun total de résultats.
+                        </dd>
+                        <dt class="mt-1.5 text-[13px] leading-snug text-encre-2">
+                            {{ t.libelle }}
+                        </dt>
+                    </div>
+                    <div
+                        v-for="t in horsResultats"
+                        :key="t.code"
+                        class="w-32 border-l-2 border-dashed border-filet px-4"
+                    >
+                        <dd class="text-[1.75rem] leading-none font-medium text-encre-2">
+                            {{ t.nombre }}
+                        </dd>
+                        <dt class="mt-1.5 text-[13px] leading-snug text-encre-2">
+                            {{ t.libelle }}
+                        </dt>
+                    </div>
+                </dl>
+                <p class="mt-3 text-[12px] text-encre-2">
+                    « Sans objet » (mois Non évalué) et « En attente » (mois
+                    t+3 pas encore importé) ne sont pas des résultats et ne
+                    comptent dans aucun total de résultats.
                 </p>
             </section>
 
             <section
-                class="rounded-lg border border-neutral-200 bg-white px-4 py-2"
+                class="flex min-h-0 flex-1 flex-col rounded-[10px] bg-feuille px-6 pt-4 pb-2"
                 aria-labelledby="titre-mois"
             >
-                <h2 id="titre-mois" class="mb-1 text-sm font-semibold">
+                <h2 id="titre-mois" class="text-[15px] font-semibold">
                     Toutes les clôtures
                 </h2>
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr
-                            class="border-b border-neutral-200 text-left text-xs text-neutral-500"
-                        >
-                            <th class="py-1 font-medium">Mois</th>
-                            <th class="py-1 font-medium">Niveau</th>
-                            <th class="py-1 font-medium">Statut</th>
-                            <th class="py-1 text-right font-medium">
-                                Hausse réelle
-                            </th>
-                            <th class="py-1 pl-4 font-medium">Résultat</th>
-                            <th class="py-1 text-right font-medium">
-                                Décisions
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr
-                            v-for="l in lignes"
-                            :key="l.mois"
-                            class="border-b border-neutral-100 last:border-0"
-                        >
-                            <td class="py-0.5">
-                                <Link
-                                    :href="l.url"
-                                    class="hover:underline print:no-underline"
-                                    >{{ l.mois }}</Link
+                <div class="mt-2 min-h-0 flex-1 overflow-y-auto pr-2">
+                    <table class="chiffres w-full text-[14px]">
+                        <thead class="sticky top-0 bg-feuille">
+                            <tr class="border-b border-filet text-left text-[12px] text-encre-2">
+                                <th class="py-2 font-medium">Mois</th>
+                                <th class="py-2 font-medium">Niveau</th>
+                                <th class="py-2 font-medium">Statut</th>
+                                <th class="py-2 text-right font-medium">Hausse réelle</th>
+                                <th class="py-2 pl-8 font-medium">Résultat</th>
+                                <th class="py-2 text-right font-medium">Décisions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr
+                                v-for="l in lignes"
+                                :key="l.mois"
+                                class="border-b border-filet last:border-0"
+                            >
+                                <td class="py-1.5">
+                                    <Link
+                                        :href="l.url"
+                                        class="font-medium text-prusse underline-offset-2 hover:underline"
+                                        >{{ l.mois }}</Link
+                                    >
+                                </td>
+                                <td class="py-1.5">
+                                    <span
+                                        class="niveau rounded px-2 py-0.5 text-[12px] font-semibold"
+                                        :class="aplatNiveau[l.couleur]"
+                                        >{{ l.niveau }}</span
+                                    >
+                                </td>
+                                <td class="py-1.5">{{ l.statut }}</td>
+                                <td class="py-1.5 text-right">{{ l.hausseReelle }}</td>
+                                <td
+                                    class="py-1.5 pl-8"
+                                    :class="{ 'text-encre-2': l.resultatCode === 'SANS_OBJET' || l.resultatCode === 'EN_ATTENTE' }"
                                 >
-                            </td>
-                            <td class="py-0.5">
-                                <span
-                                    class="niveau rounded px-2 py-0.5 text-xs font-semibold"
-                                    :class="fondNiveau[l.couleur]"
-                                    >{{ l.niveau }}</span
-                                >
-                            </td>
-                            <td class="py-0.5">{{ l.statut }}</td>
-                            <td class="py-0.5 text-right tabular-nums">
-                                {{ l.hausseReelle }}
-                            </td>
-                            <td class="py-0.5 pl-4">{{ l.resultat }}</td>
-                            <td class="py-0.5 text-right tabular-nums">
-                                {{ l.decisions }}
-                                <span
-                                    v-if="l.decisionsAnnulees"
-                                    class="text-xs text-neutral-500"
-                                    >{{ l.decisionsAnnulees }}</span
-                                >
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                                    {{ l.resultat }}
+                                </td>
+                                <td class="py-1.5 text-right">
+                                    {{ l.decisions }}
+                                    <span
+                                        v-if="l.decisionsAnnulees"
+                                        class="text-[12px] text-encre-2"
+                                        >{{ l.decisionsAnnulees }}</span
+                                    >
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </section>
         </main>
     </div>

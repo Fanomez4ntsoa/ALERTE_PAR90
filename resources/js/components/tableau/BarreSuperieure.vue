@@ -27,13 +27,27 @@ import type { Navigation, Onglet } from '@/types/tableau';
  * mois (précédent, liste, suivant) et menu utilisateur. Les adresses viennent
  * du serveur ; changer de mois garde l'onglet en cours.
  */
-const props = defineProps<{
-    institution: string;
-    onglet: Onglet['cle'];
-    onglets: Onglet[];
-    navigation: Navigation | null;
-    moisCourant: string | null;
-}>();
+const props = withDefaults(
+    defineProps<{
+        institution: string;
+        onglet?: Onglet['cle'] | null;
+        onglets?: Onglet[];
+        navigation?: Navigation | null;
+        moisCourant?: string | null;
+        /** Sans onglets : titre de la page, au centre. */
+        titre?: string | null;
+        /** Sans onglets : lien de retour, à droite. */
+        retour?: { libelle: string; url: string } | null;
+    }>(),
+    {
+        onglet: null,
+        onglets: () => [],
+        navigation: null,
+        moisCourant: null,
+        titre: null,
+        retour: null,
+    },
+);
 
 const page = usePage();
 const utilisateur = computed(
@@ -100,9 +114,18 @@ const bouton =
                 >{{ o.libelle }}</Link
             >
         </nav>
+        <p v-else-if="titre" class="text-sm font-semibold">{{ titre }}</p>
         <span v-else />
 
         <div class="flex items-center justify-end gap-3">
+            <Link
+                v-if="retour"
+                :href="retour.url"
+                class="inline-flex h-8 items-center gap-1 rounded-md px-2 text-sm font-medium text-encre-2 hover:bg-fond hover:text-encre focus-visible:outline-2 focus-visible:outline-prusse"
+            >
+                <ChevronLeft class="size-4" aria-hidden="true" />
+                {{ retour.libelle }}
+            </Link>
             <div
                 v-if="navigation && moisCourant"
                 class="flex items-center gap-0.5"
