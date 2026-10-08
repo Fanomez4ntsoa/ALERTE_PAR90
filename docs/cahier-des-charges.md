@@ -110,11 +110,11 @@ Tous les calculs sont des soustractions, des divisions et un tri. Ils se font su
 | --- | --- | --- |
 | Tranche 61–90 | `par60(t) − par90(t)` | point |
 | Bond de la tranche | `tranche(t) − tranche(t−1)` | point |
-| Hausse sur trois mois | `par90(t) − par90(t−3)` | point |
+| Hausse sur trois mois | `par90(t) − par90(t−h)`, h = horizon de vérification (3 mois) | point |
 | Part des retards de plus de 180 jours | `par180(t) ÷ par90(t) × 100` | % |
 | Part des retards de plus d'un an | `par365(t) ÷ par90(t) × 100` | % |
 | Taux de passage connu | `rr_61_90` de la ligne t−1 | % |
-| Hausse réelle après trois mois | `par90(t+3) − par90(t)`, calculée quand t+3 est importé | point |
+| Hausse réelle après trois mois | `par90(t+h) − par90(t)`, calculée quand t+h est importé | point |
 
 ### Seuil du bond
 
@@ -127,7 +127,10 @@ si n < 12 : pas de seuil, signal avancé indisponible
 rang  = 0,70 × (n − 1)            // index à partir de 0
 bas   = partie entière de rang
 seuil = liste[bas] + (rang − bas) × (liste[bas + 1] − liste[bas])
+seuil = arrondi à 8 décimales
 ```
+
+Le seuil est arrondi à 8 décimales ; c'est cette valeur arrondie qui est comparée au bond et stockée (`DECIMAL(12,8)`).
 
 Le signal avancé est allumé si `bond(t) ≥ seuil(t)`. Pour chaque mois, l'outil enregistre le seuil et le nombre de bonds utilisés.
 
@@ -139,14 +142,14 @@ Le signal avancé est allumé si `bond(t) ≥ seuil(t)`. Pour chaque mois, l'out
 | Seuil de hausse sur trois mois | 0,5 point |
 | Centile du bond | 70 |
 | Nombre minimum de bonds passés | 12 |
-| Horizon de vérification | 3 mois |
+| Horizon de vérification | 3 mois — sert aussi de décalage à la hausse sur trois mois : c'est la même définition utilisée deux fois |
 
 Aucune de ces valeurs n'est écrite dans le code.
 
 ### Précision
 
-- Les taux sont stockés avec six décimales, les montants en ariary entiers.
-- Toute comparaison à un seuil utilise la valeur stockée, jamais la valeur arrondie affichée.
+- Les taux sont stockés avec six décimales, le seuil du bond avec huit, les montants en ariary entiers.
+- Toute comparaison à un seuil utilise la valeur stockée, jamais la valeur arrondie affichée. Le seuil du bond est arrondi à 8 décimales avant la comparaison.
 - Affichage : deux décimales pour les taux et les écarts, trois pour le seuil du bond, montants en milliards d'ariary avec deux décimales.
 
 ## 6. Niveaux d'alerte et statut
@@ -255,13 +258,15 @@ Le registre réunit deux choses distinctes : ce que la direction décide, saisi 
 
 ### Vérification automatique
 
-Pour chaque mois t, dès que le mois t+3 est importé, l'outil calcule `par90(t+3) − par90(t)` et classe le mois.
+Pour chaque mois t, dès que le mois t+3 est importé, l'outil calcule `par90(t+3) − par90(t)` et classe le mois. Le décalage est l'horizon de vérification (3 mois), le même que pour la hausse sur trois mois.
 
 | Niveau du mois t | Hausse réelle ≥ 0,5 point | Hausse réelle < 0,5 point |
 | --- | --- | --- |
 | Vigilance | Hausse confirmée | Signal non suivi d'une hausse |
 | Alerte | La hausse s'est prolongée | Pas de nouvelle hausse |
 | Normal | Hausse non signalée | Rien à signaler |
+
+Un mois Non évalué garde sa hausse réelle, sans résultat de vérification, affiché « Sans objet ». Il ne compte dans aucun total de résultats.
 
 Le mot « fausse alerte » n'apparaît nulle part : une Alerte constate une hausse déjà faite, et une revue suivie d'une action efficace peut expliquer l'absence de hausse.
 
@@ -291,7 +296,8 @@ Six tables suffisent. Les valeurs calculées sont stockées à côté des valeur
 | Identité | `mois` (unique), `import_id`, `parametres_id`, `mode_calcul` (rétrospectif ou à la clôture) | date, clés, texte |
 | Importé | `par30`, `par60`, `par90`, `par180`, `par365`, `impaye`, `rr_61_90` | `DECIMAL(10,6)`, vide autorisé sauf `par30`, `par60`, `par90` |
 | Importé | `encours`, `par90_mt`, `radiations` | `BIGINT`, vide autorisé pour `radiations` |
-| Calculé | `tranche_61_90`, `bond`, `hausse_3m`, `seuil_bond`, `part_180`, `part_365`, `rr_connu` | `DECIMAL(10,6)`, vide autorisé |
+| Calculé | `tranche_61_90`, `bond`, `hausse_3m`, `part_180`, `part_365`, `rr_connu` | `DECIMAL(10,6)`, vide autorisé |
+| Calculé | `seuil_bond` | `DECIMAL(12,8)`, arrondi à 8 décimales, vide autorisé |
 | Calculé | `nb_bonds`, `niveau`, `statut`, `motif` | entier, texte |
 | Vérification | `hausse_reelle_3m`, `resultat_verif` | `DECIMAL(10,6)`, texte, vides tant que t+3 n'est pas importé |
 
@@ -304,13 +310,13 @@ Six tables suffisent. Les valeurs calculées sont stockées à côté des valeur
 
 ## 11. Choix techniques
 
-Laravel, Vue 3 et MySQL 8 : le calcul est simple, et le reste du travail (comptes, droits, import Excel, registre, traçabilité) est ce que Laravel fournit déjà.
+Laravel, Vue 3 et MariaDB 10.11 (pilote mysql) : le calcul est simple, et le reste du travail (comptes, droits, import Excel, registre, traçabilité) est ce que Laravel fournit déjà.
 
 | Brique | Choix | Raison |
 | --- | --- | --- |
 | Serveur | Laravel | Maîtrisé par le développeur ; hébergeable partout, y compris sur un serveur interne |
 | Interface | Vue 3 avec Inertia | Une seule application à déployer, pas d'API séparée à maintenir |
-| Base de données | MySQL 8 | Le type `DECIMAL` y est exact ; rien dans ce projet n'exige PostgreSQL |
+| Base de données | MariaDB 10.11 (pilote mysql) | Le type `DECIMAL` y est exact ; rien dans ce projet n'exige PostgreSQL |
 | Graphiques | Chart.js | Une courbe et une ligne de repère suffisent |
 | Lecture Excel | PhpSpreadsheet (via Laravel Excel) | Lit le fichier modèle sans conversion |
 | Droits | Policies Laravel, deux rôles | L'analyste importe et annule ; la direction décide ; les deux consultent |
