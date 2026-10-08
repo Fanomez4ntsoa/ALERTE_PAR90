@@ -8,6 +8,7 @@ use App\Domain\Alerte\ResultatMois;
 use App\Enums\EtatImport;
 use App\Enums\ModeCalcul;
 use App\Models\Cloture;
+use App\Models\Decision;
 use App\Models\Generation;
 use App\Models\Import;
 use App\Models\Parametre;
@@ -98,7 +99,18 @@ class ServiceImport
         $import = Import::query()->where('etat', EtatImport::ACTIF)->orderByDesc('id')->first()
             ?? throw new RuntimeException('Aucun import actif à annuler.');
 
-        // Étape 4 : refuser l'annulation si une décision est inscrite pour l'un de ces mois.
+        // Section 7 : refusée si une décision est inscrite au registre pour l'un de ces mois.
+        $decisions = Decision::query()
+            ->whereIn('cloture_id', $import->clotures()->select('id'))
+            ->with('cloture')
+            ->get();
+        if ($decisions->isNotEmpty()) {
+            $mois = $decisions->map(fn (Decision $d) => $d->cloture->mois->format('Y-m'))->unique()->sort()->implode(', ');
+
+            throw new AnnulationRefusee(
+                "Annulation refusée : {$decisions->count()} décision(s) inscrite(s) au registre pour {$mois}. L'accord de la direction est nécessaire."
+            );
+        }
 
         DB::transaction(function () use ($import, $utilisateur) {
             $retires = $import->clotures()->get()->map(fn (Cloture $c) => $c->mois->format('Y-m'))->all();

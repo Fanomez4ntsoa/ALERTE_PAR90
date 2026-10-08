@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Enums\EtatImport;
+use App\Import\AnnulationRefusee;
 use App\Import\ServiceImport;
 use App\Models\Import;
 use App\Models\User;
@@ -41,7 +42,13 @@ class AnnulerImport extends Command
             return self::FAILURE;
         }
 
-        $service->annulerDernier($utilisateur);
+        try {
+            $service->annulerDernier($utilisateur);
+        } catch (AnnulationRefusee $e) {
+            $this->error($e->getMessage());
+
+            return self::FAILURE;
+        }
         $this->info("Annulé : {$resume}.");
 
         return self::SUCCESS;

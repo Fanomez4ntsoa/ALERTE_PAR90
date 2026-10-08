@@ -2,9 +2,11 @@
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { ChevronLeft, ChevronRight, LogOut, Settings } from '@lucide/vue';
 import { computed } from 'vue';
+import BlocRegistre from '@/components/BlocRegistre.vue';
 import CourbePar90 from '@/components/CourbePar90.vue';
 import { logout } from '@/routes';
 import { edit as editProfile } from '@/routes/profile';
+import type { Registre } from '@/types/registre';
 
 /*
  * Tableau de bord d'une clôture (sections 6 et 8), blocs 1 à 5.
@@ -70,6 +72,7 @@ type Tableau = {
         ages: number[];
         lignes: { mois: string; cellules: (string | null)[] }[];
     };
+    registre: Registre;
 };
 
 const props = defineProps<{
@@ -558,6 +561,12 @@ function changerMois(evenement: Event): void {
                     </tbody>
                 </table>
             </section>
+
+            <!-- Bloc 6 : registre -->
+            <BlocRegistre
+                :registre="tableau.registre"
+                :mois="tableau.mois.libelle"
+            />
         </main>
     </div>
 </template>

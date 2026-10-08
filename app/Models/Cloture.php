@@ -9,6 +9,7 @@ use App\Domain\Alerte\Statut;
 use App\Enums\ModeCalcul;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 use LogicException;
 
@@ -43,6 +44,8 @@ use LogicException;
  * @property string $motif
  * @property string|null $hausse_reelle_3m
  * @property ResultatVerification|null $resultat_verif
+ * @property int|null $decisions_count avec withCount('decisions')
+ * @property int|null $decisions_annulees_count avec withCount, décisions annulées
  */
 class Cloture extends Model
 {
@@ -95,6 +98,12 @@ class Cloture extends Model
     public function import(): BelongsTo
     {
         return $this->belongsTo(Import::class);
+    }
+
+    /** @return HasMany<Decision, $this> */
+    public function decisions(): HasMany
+    {
+        return $this->hasMany(Decision::class);
     }
 
     /** @return BelongsTo<Parametre, $this> */

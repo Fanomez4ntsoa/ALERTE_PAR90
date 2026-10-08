@@ -206,7 +206,7 @@ Les 33 mois du mémoire sont chargés en une fois. Leurs niveaux sont calculés 
 
 - Une ligne importée ne se modifie pas à la main.
 - L'analyste peut annuler le dernier import : ses mois sont retirés, ainsi que les calculs qui en dépendent.
-- L'annulation est refusée si une décision est déjà inscrite au registre pour l'un de ces mois ; il faut alors l'accord de la direction, qui la débloque.
+- L'annulation est refusée si une décision est inscrite au registre pour l'un de ces mois, même une décision annulée. Le déblocage par la direction est reporté après la v1.
 - Chaque import et chaque annulation sont tracés : qui, quand, quel fichier, quels mois.
 
 ## 8. Écran du tableau de bord

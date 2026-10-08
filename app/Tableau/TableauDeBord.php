@@ -4,9 +4,13 @@ namespace App\Tableau;
 
 use App\Domain\Alerte\Niveau;
 use App\Domain\Alerte\Statut;
+use App\Enums\EtatDecision;
 use App\Enums\ModeCalcul;
 use App\Models\Cloture;
+use App\Models\Decision;
 use App\Models\Generation;
+use App\Registre\LibelleVerification;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 
 /**
@@ -24,7 +28,7 @@ final class TableauDeBord
         'NON_EVALUE' => 'Aucune',
     ];
 
-    private const COULEURS = [
+    public const COULEURS = [
         'NORMAL' => 'vert',
         'VIGILANCE' => 'jaune',
         'ALERTE' => 'rouge',
@@ -62,6 +66,7 @@ final class TableauDeBord
             'signal' => $this->signal(),
             'comprehension' => $this->comprehension(),
             'generations' => $this->generations(),
+            'registre' => $this->registre(),
         ];
     }
 
@@ -260,6 +265,71 @@ final class TableauDeBord
         }
 
         return ['ages' => range(0, self::AGE_MAX), 'lignes' => $lignes];
+    }
+
+    /**
+     * Bloc 6 : décisions de la clôture affichée, et signal émis h mois plus tôt
+     * avec sa vérification et les décisions prises à l'époque (section 9).
+     *
+     * @return array<string, mixed>
+     */
+    private function registre(): array
+    {
+        $horizon = $this->cloture->parametres->horizon_verification;
+        $avant = $this->clotureDecalee(-$horizon);
+
+        $signal = null;
+        if ($avant !== null) {
+            $code = LibelleVerification::code($avant);
+            $signal = [
+                'mois' => Format::mois($avant->mois),
+                'url' => route('dashboard', ['mois' => $this->cle($avant)]),
+                'niveau' => $avant->niveau->libelle(),
+                'couleur' => self::COULEURS[$avant->niveau->value],
+                'par90Alors' => Format::taux($avant->par90),
+                'par90Aujourdhui' => Format::taux($this->cloture->par90),
+                'hausseReelle' => Format::ecart($avant->hausse_reelle_3m),
+                'resultatCode' => $code,
+                'resultat' => LibelleVerification::libelle($code),
+                'decisions' => $this->decisions($avant, false),
+            ];
+        }
+
+        return [
+            'decisions' => $this->decisions($this->cloture, true),
+            'urlAjout' => route('decisions.store', ['mois' => $this->cle($this->cloture)]),
+            'moisSignal' => Format::mois($this->cloture->mois->subMonthsNoOverflow($horizon)),
+            'signal' => $signal,
+            'urlRecapitulatif' => route('recapitulatif'),
+        ];
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function decisions(Cloture $cloture, bool $modifiables): array
+    {
+        $date = fn (?CarbonInterface $d) => $d?->format('d/m/Y');
+
+        return array_values($cloture->decisions()
+            ->with(['auteur', 'completeur', 'annulateur'])
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (Decision $d) => [
+                'id' => $d->id,
+                'action' => $d->action,
+                'responsable' => $d->responsable,
+                'echeance' => $date($d->echeance),
+                'etat' => $d->etat->value,
+                'libelleEtat' => $d->etat->libelle(),
+                'resultat' => $d->resultat,
+                'motifAnnulation' => $d->motif_annulation,
+                'saisie' => 'Saisie le '.$date($d->created_at).' par '.$d->auteur->name,
+                'complement' => $d->complete_le === null ? null : 'Complétée le '.$date($d->complete_le).' par '.$d->completeur?->name,
+                'annulation' => $d->annule_le === null ? null : 'Annulée le '.$date($d->annule_le).' par '.$d->annulateur?->name,
+                'urlCompleter' => $modifiables && $d->etat === EtatDecision::OUVERTE ? route('decisions.completer', $d) : null,
+                'urlAnnuler' => $modifiables && $d->etat === EtatDecision::OUVERTE ? route('decisions.annuler', $d) : null,
+            ])
+            ->all());
     }
 
     /**

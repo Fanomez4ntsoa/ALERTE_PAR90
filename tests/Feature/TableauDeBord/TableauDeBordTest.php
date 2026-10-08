@@ -64,6 +64,12 @@ it("s'ouvre sur la clôture la plus récente et navigue mois par mois", function
             ->where('tableau.signal.message', 'Données insuffisantes pour le signal avancé'));
 });
 
+it('déclare la page en français', function () {
+    $this->actingAs(User::factory()->create())
+        ->get(route('dashboard'))
+        ->assertSee('<html lang="fr"', false);
+});
+
 it('répond 404 pour un mois absent ou mal écrit', function () {
     chargerSerie();
     $this->actingAs(User::factory()->create());

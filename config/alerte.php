@@ -8,8 +8,9 @@
 | Cahier des charges, section 5 « Paramètres en configuration ».
 | Aucune de ces valeurs n'est écrite ailleurs dans le code. Elles initialisent
 | le premier jeu de la table `parametres`, d'où le calcul les lit ensuite.
-| Ce fichier ne doit contenir que des valeurs littérales : les tests du
-| moteur le lisent directement, sans démarrer Laravel.
+| Les tests du moteur lisent ce fichier directement, sans démarrer Laravel :
+| il ne contient que des valeurs littérales, sauf le nom de l'institution,
+| lu dans .env (ALERTE_INSTITUTION) pour qu'il reste hors du dépôt.
 |
 */
 
@@ -34,7 +35,7 @@ return [
     // Au-delà, avertissement (section 4).
     'tolerance_par90_mt' => 1,
 
-    // Nom affiché de l'institution.
-    'nom_institution' => 'Institution',
+    // Nom affiché de l'institution, défini dans .env.
+    'nom_institution' => env('ALERTE_INSTITUTION', 'Institution'),
 
 ];
