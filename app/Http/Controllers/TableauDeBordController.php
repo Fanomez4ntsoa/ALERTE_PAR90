@@ -12,8 +12,16 @@ use Inertia\Response;
 
 class TableauDeBordController extends Controller
 {
-    /** Affiche une clôture ; sans mois dans l'URL, la plus récente. */
-    public function __invoke(Request $request, ?string $mois = null): Response
+    /** Onglets de la page, dans l'ordre ; le premier est celui par défaut. */
+    public const ONGLETS = [
+        'synthese' => 'Synthèse',
+        'comprehension' => 'Compréhension',
+        'generations' => 'Générations',
+        'registre' => 'Registre',
+    ];
+
+    /** Affiche une clôture ; sans mois dans l'URL, la plus récente, sur l'onglet Synthèse. */
+    public function __invoke(Request $request, ?string $mois = null, string $onglet = 'synthese'): Response
     {
         $clotures = Cloture::query()->with('parametres')->orderBy('mois')->get();
 
@@ -31,7 +39,7 @@ class TableauDeBordController extends Controller
             $lien = fn (?Cloture $c) => $c === null ? null : [
                 'valeur' => $c->mois->format('Y-m'),
                 'libelle' => Format::mois($c->mois),
-                'url' => route('dashboard', ['mois' => $c->mois->format('Y-m')]),
+                'url' => self::adresse($c->mois->format('Y-m'), $onglet),
             ];
             $navigation = [
                 'precedent' => $lien($clotures->get($index - 1)),
@@ -40,10 +48,26 @@ class TableauDeBordController extends Controller
             ];
         }
 
+        $moisAffiche = $cloture?->mois->format('Y-m');
+
         return Inertia::render('TableauDeBord', [
             'institution' => Parametre::nomInstitution(),
+            'onglet' => $onglet,
+            'onglets' => array_map(fn (string $cle, string $libelle) => [
+                'cle' => $cle,
+                'libelle' => $libelle,
+                'url' => $moisAffiche === null ? null : self::adresse($moisAffiche, $cle),
+            ], array_keys(self::ONGLETS), self::ONGLETS),
             'navigation' => $navigation,
             'tableau' => $cloture === null ? null : (new TableauDeBord($cloture, $clotures, $request->user()))->donnees(),
         ]);
+    }
+
+    /** Adresse d'un mois sur un onglet ; Synthèse n'ajoute pas de suffixe. */
+    public static function adresse(string $mois, string $onglet): string
+    {
+        return $onglet === array_key_first(self::ONGLETS)
+            ? route('dashboard', ['mois' => $mois])
+            : route('dashboard', ['mois' => $mois, 'onglet' => $onglet]);
     }
 }

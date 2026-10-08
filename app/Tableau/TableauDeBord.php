@@ -35,12 +35,15 @@ final class TableauDeBord
         'NON_EVALUE' => 'gris',
     ];
 
-    /** Couleur des points de la courbe par niveau ; neutre pour Normal et Non évalué. */
+    /**
+     * Teinte des points de la courbe par niveau ; neutre pour Normal et Non évalué.
+     * Ce sont des noms : le navigateur les associe aux couleurs du thème.
+     */
     private const COULEURS_POINTS = [
-        'ALERTE' => '#b91c1c',
-        'VIGILANCE' => '#f59e0b',
-        'NORMAL' => '#334155',
-        'NON_EVALUE' => '#334155',
+        'ALERTE' => 'alerte',
+        'VIGILANCE' => 'vigilance',
+        'NORMAL' => 'neutre',
+        'NON_EVALUE' => 'neutre',
     ];
 
     private const NOMBRE_GENERATIONS = 12;

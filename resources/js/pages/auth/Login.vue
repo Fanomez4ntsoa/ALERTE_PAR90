@@ -13,8 +13,8 @@ import { request } from '@/routes/password';
 
 defineOptions({
     layout: {
-        title: 'Log in to your account',
-        description: 'Enter your email and password below to log in',
+        title: 'Connexion',
+        description: "Accès réservé aux comptes de l'institution.",
     },
 });
 
@@ -25,12 +25,9 @@ defineProps<{
 </script>
 
 <template>
-    <Head title="Log in" />
+    <Head title="Connexion" />
 
-    <div
-        v-if="status"
-        class="mb-4 text-center text-sm font-medium text-green-600"
-    >
+    <div v-if="status" class="mb-4 text-sm font-medium text-prusse">
         {{ status }}
     </div>
 
@@ -42,7 +39,7 @@ defineProps<{
     >
         <div class="grid gap-6">
             <div class="grid gap-2">
-                <Label for="email">Email address</Label>
+                <Label for="email">Adresse e-mail</Label>
                 <Input
                     id="email"
                     type="email"
@@ -51,21 +48,20 @@ defineProps<{
                     v-focus
                     :tabindex="1"
                     autocomplete="email"
-                    placeholder="email@example.com"
                 />
                 <InputError :message="errors.email" />
             </div>
 
             <div class="grid gap-2">
                 <div class="flex items-center justify-between">
-                    <Label for="password">Password</Label>
+                    <Label for="password">Mot de passe</Label>
                     <TextLink
                         v-if="canResetPassword"
                         :href="request()"
                         class="text-sm"
                         :tabindex="5"
                     >
-                        Forgot your password?
+                        Mot de passe oublié ?
                     </TextLink>
                 </div>
                 <PasswordInput
@@ -74,7 +70,6 @@ defineProps<{
                     required
                     :tabindex="2"
                     autocomplete="current-password"
-                    placeholder="Password"
                 />
                 <InputError :message="errors.password" />
             </div>
@@ -82,7 +77,7 @@ defineProps<{
             <div class="flex items-center justify-between">
                 <Label for="remember" class="flex items-center space-x-3">
                     <Checkbox id="remember" name="remember" :tabindex="3" />
-                    <span>Remember me</span>
+                    <span>Rester connecté</span>
                 </Label>
             </div>
 
@@ -94,7 +89,7 @@ defineProps<{
                 data-test="login-button"
             >
                 <Spinner v-if="processing" />
-                Log in
+                Se connecter
             </Button>
         </div>
     </Form>

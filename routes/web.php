@@ -8,8 +8,10 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', fn () => redirect()->route('dashboard'))->name('home');
 
 Route::middleware(['auth', 'verified', 'can:consulter'])->group(function () {
-    Route::get('dashboard/{mois?}', TableauDeBordController::class)
+    // Onglet dans l'adresse : /dashboard/2026-07/generations ; Synthèse par défaut, sans suffixe.
+    Route::get('dashboard/{mois?}/{onglet?}', TableauDeBordController::class)
         ->where('mois', '\d{4}-(0[1-9]|1[0-2])')
+        ->where('onglet', 'synthese|comprehension|generations|registre')
         ->name('dashboard');
 
     Route::get('recapitulatif', RecapitulatifController::class)->name('recapitulatif');

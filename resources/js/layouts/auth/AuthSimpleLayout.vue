@@ -1,42 +1,53 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
-import AppLogoIcon from '@/components/AppLogoIcon.vue';
-import { home } from '@/routes';
+import { usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 
+/** Pages d'authentification : le produit à gauche, le formulaire sur une feuille. */
 defineProps<{
     title?: string;
     description?: string;
 }>();
+
+const page = usePage();
+const institution = computed(
+    () => page.props.institution as string | undefined,
+);
 </script>
 
 <template>
     <div
-        class="flex min-h-svh flex-col items-center justify-center gap-6 bg-background p-6 md:p-10"
+        class="grid min-h-svh bg-fond text-encre lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]"
     >
-        <div class="w-full max-w-sm">
-            <div class="flex flex-col gap-8">
-                <div class="flex flex-col items-center gap-4">
-                    <Link
-                        :href="home()"
-                        class="flex flex-col items-center gap-2 font-medium"
-                    >
-                        <div
-                            class="mb-1 flex h-9 w-9 items-center justify-center rounded-md"
-                        >
-                            <AppLogoIcon
-                                class="size-9 fill-current text-[var(--foreground)] dark:text-white"
-                            />
-                        </div>
-                        <span class="sr-only">{{ title }}</span>
-                    </Link>
-                    <div class="space-y-2 text-center">
-                        <h1 class="text-xl font-medium">{{ title }}</h1>
-                        <p class="text-center text-sm text-muted-foreground">
-                            {{ description }}
-                        </p>
-                    </div>
+        <div class="flex flex-col justify-between px-8 py-10 lg:px-16 lg:py-14">
+            <div>
+                <p
+                    class="text-[2.75rem] leading-none font-bold tracking-[-0.03em]"
+                >
+                    Alerte PAR90
+                </p>
+                <p v-if="institution" class="mt-3 text-lg text-encre-2">
+                    {{ institution }}
+                </p>
+            </div>
+            <p class="mt-10 max-w-sm text-[15px] leading-relaxed text-encre-2">
+                Suivi mensuel du risque de portefeuille : niveau d'alerte,
+                signal avancé et registre des décisions de la direction.
+            </p>
+        </div>
+
+        <div class="flex items-center justify-center px-6 py-10 lg:px-12">
+            <div
+                class="w-full max-w-sm rounded-[10px] border border-filet bg-feuille px-8 py-9"
+            >
+                <h1 class="text-2xl font-semibold tracking-[-0.01em]">
+                    {{ title }}
+                </h1>
+                <p v-if="description" class="mt-1.5 text-sm text-encre-2">
+                    {{ description }}
+                </p>
+                <div class="mt-7">
+                    <slot />
                 </div>
-                <slot />
             </div>
         </div>
     </div>

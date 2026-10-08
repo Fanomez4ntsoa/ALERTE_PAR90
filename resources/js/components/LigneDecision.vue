@@ -12,9 +12,9 @@ const correction = useForm({ resultat: props.decision.resultat ?? '' });
 const annulation = useForm({ motif: '' });
 
 const styleEtat: Record<DecisionAffichee['etat'], string> = {
-    ouverte: 'border-neutral-400 text-neutral-700',
-    completee: 'border-neutral-700 bg-neutral-800 text-white',
-    annulee: 'border-neutral-300 text-neutral-500 line-through',
+    ouverte: 'border-encre-2/60 text-encre',
+    completee: 'border-encre bg-encre text-feuille',
+    annulee: 'border-filet text-encre-2 line-through',
 };
 
 function completer(): void {
@@ -47,13 +47,13 @@ function annuler(): void {
 
 <template>
     <li
-        class="rounded-md border border-neutral-200 px-3 py-2 text-sm"
-        :class="{ 'bg-neutral-50': decision.etat === 'annulee' }"
+        class="rounded-md border border-filet px-3 py-2 text-sm"
+        :class="{ 'bg-fond': decision.etat === 'annulee' }"
     >
         <div class="flex items-start gap-2">
             <p
                 class="flex-1 font-medium"
-                :class="{ 'text-neutral-500': decision.etat === 'annulee' }"
+                :class="{ 'text-encre-2': decision.etat === 'annulee' }"
             >
                 {{ decision.action }}
             </p>
@@ -63,7 +63,7 @@ function annuler(): void {
                 >{{ decision.libelleEtat }}</span
             >
         </div>
-        <p class="text-xs text-neutral-600">
+        <p class="text-xs text-encre-2">
             Responsable : {{ decision.responsable }} · échéance
             {{ decision.echeance }}
         </p>
@@ -75,7 +75,7 @@ function annuler(): void {
             <span class="font-semibold">Motif d'annulation :</span>
             {{ decision.motifAnnulation }}
         </p>
-        <p class="mt-1 text-[11px] text-neutral-500">
+        <p class="mt-1 text-[11px] text-encre-2">
             {{ decision.saisie }}
             <template v-if="decision.complement">
                 · {{ decision.complement }}</template
@@ -96,7 +96,7 @@ function annuler(): void {
             <button
                 v-if="decision.urlCompleter"
                 type="button"
-                class="underline hover:text-neutral-900"
+                class="underline hover:text-encre"
                 @click="ouvert = ouvert === 'completer' ? null : 'completer'"
             >
                 Compléter
@@ -104,7 +104,7 @@ function annuler(): void {
             <button
                 v-if="decision.urlCorriger"
                 type="button"
-                class="underline hover:text-neutral-900"
+                class="underline hover:text-encre"
                 @click="ouvert = ouvert === 'corriger' ? null : 'corriger'"
             >
                 Corriger le résultat
@@ -112,7 +112,7 @@ function annuler(): void {
             <button
                 v-if="decision.urlAnnuler"
                 type="button"
-                class="underline hover:text-neutral-900"
+                class="underline hover:text-encre"
                 @click="ouvert = ouvert === 'annuler' ? null : 'annuler'"
             >
                 Annuler
@@ -131,15 +131,15 @@ function annuler(): void {
                 :id="`resultat-${decision.id}`"
                 v-model="complement.resultat"
                 rows="2"
-                class="rounded border border-neutral-300 px-2 py-1 text-sm"
+                class="rounded border border-filet px-2 py-1 text-sm"
             />
-            <p v-if="complement.errors.resultat" class="text-xs text-red-700">
+            <p v-if="complement.errors.resultat" class="text-xs text-alerte">
                 {{ complement.errors.resultat }}
             </p>
             <button
                 type="submit"
                 :disabled="complement.processing"
-                class="self-start rounded bg-neutral-800 px-3 py-1 text-xs text-white disabled:opacity-50"
+                class="self-start rounded bg-prusse px-3 py-1 text-xs text-feuille disabled:opacity-50"
             >
                 Enregistrer le résultat
             </button>
@@ -159,15 +159,15 @@ function annuler(): void {
                 :id="`correction-${decision.id}`"
                 v-model="correction.resultat"
                 rows="2"
-                class="rounded border border-neutral-300 px-2 py-1 text-sm"
+                class="rounded border border-filet px-2 py-1 text-sm"
             />
-            <p v-if="correction.errors.resultat" class="text-xs text-red-700">
+            <p v-if="correction.errors.resultat" class="text-xs text-alerte">
                 {{ correction.errors.resultat }}
             </p>
             <button
                 type="submit"
                 :disabled="correction.processing"
-                class="self-start rounded bg-neutral-800 px-3 py-1 text-xs text-white disabled:opacity-50"
+                class="self-start rounded bg-prusse px-3 py-1 text-xs text-feuille disabled:opacity-50"
             >
                 Enregistrer la correction
             </button>
@@ -185,15 +185,15 @@ function annuler(): void {
                 :id="`motif-${decision.id}`"
                 v-model="annulation.motif"
                 rows="2"
-                class="rounded border border-neutral-300 px-2 py-1 text-sm"
+                class="rounded border border-filet px-2 py-1 text-sm"
             />
-            <p v-if="annulation.errors.motif" class="text-xs text-red-700">
+            <p v-if="annulation.errors.motif" class="text-xs text-alerte">
                 {{ annulation.errors.motif }}
             </p>
             <button
                 type="submit"
                 :disabled="annulation.processing"
-                class="self-start rounded border border-neutral-500 px-3 py-1 text-xs disabled:opacity-50"
+                class="self-start rounded border border-encre-2/60 px-3 py-1 text-xs disabled:opacity-50"
             >
                 Annuler la décision
             </button>

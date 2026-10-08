@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\Decision;
 use App\Models\Import;
+use App\Models\Parametre;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -40,6 +41,7 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'name' => config('app.name'),
+            'institution' => fn () => Parametre::nomInstitution(),
             'auth' => [
                 'user' => $request->user(),
                 // Ce que l'interface affiche ; le serveur vérifie de toute façon (403).

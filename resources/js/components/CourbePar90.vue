@@ -1,25 +1,27 @@
 <script setup lang="ts">
 import Chart from 'chart.js/auto';
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import type { Courbe } from '@/types/tableau';
 
-/** Courbe du PAR90 sur tout l'historique ; données et textes préparés par le serveur. */
-type Courbe = {
-    etiquettes: string[];
-    valeurs: number[];
-    infobulles: string[];
-    limite: number;
-    libelleLimite: string;
-    indexMois: number | null;
-    couleurs: string[];
-    legende: { libelle: string; couleur: string }[];
-};
+/*
+ * Courbe du PAR90 sur tout l'historique. Valeurs, textes et niveaux viennent
+ * du serveur ; les couleurs sont lues dans les jetons du thème du conteneur,
+ * donc la courbe suit le thème (et reste claire dans la zone d'impression).
+ */
+const props = defineProps<{ courbe: Courbe; compacte?: boolean }>();
 
-const props = defineProps<{ courbe: Courbe }>();
-
+const conteneur = ref<HTMLElement | null>(null);
 const canvas = ref<HTMLCanvasElement | null>(null);
 let graphique: Chart | null = null;
+let observateur: MutationObserver | null = null;
 const impression = window.matchMedia('print');
 const redimensionner = () => graphique?.resize();
+
+function jeton(nom: string): string {
+    return conteneur.value
+        ? getComputedStyle(conteneur.value).getPropertyValue(nom).trim()
+        : '';
+}
 
 function dessiner(): void {
     graphique?.destroy();
@@ -36,7 +38,22 @@ function dessiner(): void {
         indexMois,
         couleurs,
     } = props.courbe;
+    const t = {
+        encre: jeton('--encre'),
+        encre2: jeton('--encre-2'),
+        filet: jeton('--filet'),
+        feuille: jeton('--feuille'),
+        prusse: jeton('--prusse'),
+        alerte: jeton('--niveau-alerte'),
+        vigilance: jeton('--niveau-vigilance'),
+    };
+    const teinte = {
+        alerte: t.alerte,
+        vigilance: t.vigilance,
+        neutre: t.encre,
+    };
     const estMois = (i: number) => i === indexMois;
+    const taille = props.compacte ? 9 : 11;
 
     graphique = new Chart(canvas.value, {
         type: 'line',
@@ -46,25 +63,27 @@ function dessiner(): void {
                 {
                     label: 'PAR90',
                     data: valeurs,
-                    borderColor: '#64748b',
+                    borderColor: t.encre2,
                     borderWidth: 1.5,
                     tension: 0,
-                    // Couleur de chaque point : niveau de son mois, fournie par le serveur.
-                    pointBackgroundColor: couleurs,
-                    pointRadius: valeurs.map((_, i) => (estMois(i) ? 7 : 3.5)),
+                    pointBackgroundColor: couleurs.map((c) => teinte[c]),
+                    pointRadius: valeurs.map((_, i) =>
+                        estMois(i) ? 6 : props.compacte ? 2.5 : 3.5,
+                    ),
                     pointBorderColor: valeurs.map((_, i) =>
-                        estMois(i) ? '#2563eb' : couleurs[i],
+                        estMois(i) ? t.prusse : t.feuille,
                     ),
                     pointBorderWidth: valeurs.map((_, i) =>
-                        estMois(i) ? 3 : 0,
+                        estMois(i) ? 3 : 1,
                     ),
+                    pointHoverRadius: 6,
                 },
                 {
                     label: libelleLimite,
                     data: valeurs.map(() => limite),
-                    borderColor: '#64748b',
-                    borderWidth: 1.5,
-                    borderDash: [6, 4],
+                    borderColor: t.encre2,
+                    borderWidth: 1,
+                    borderDash: [5, 4],
                     pointRadius: 0,
                     pointHitRadius: 0,
                 },
@@ -74,11 +93,17 @@ function dessiner(): void {
             animation: false,
             maintainAspectRatio: false,
             devicePixelRatio: 2,
+            layout: { padding: { top: 6, right: 8, left: 4 } },
             plugins: {
                 legend: { display: false },
                 tooltip: {
+                    backgroundColor: t.encre,
+                    titleColor: t.feuille,
+                    bodyColor: t.feuille,
+                    displayColors: false,
                     filter: (item) => item.datasetIndex === 0,
                     callbacks: {
+                        title: () => '',
                         label: (item) => infobulles[item.dataIndex] ?? '',
                     },
                 },
@@ -86,18 +111,23 @@ function dessiner(): void {
             scales: {
                 x: {
                     ticks: {
-                        font: { size: 10 },
+                        color: t.encre2,
+                        font: { size: taille, family: "'IBM Plex Sans'" },
                         maxRotation: 0,
                         autoSkip: true,
-                        autoSkipPadding: 8,
+                        autoSkipPadding: 10,
                     },
                     grid: { display: false },
+                    border: { color: t.filet },
                 },
                 y: {
                     ticks: {
-                        font: { size: 10 },
+                        color: t.encre2,
+                        font: { size: taille, family: "'IBM Plex Sans'" },
                         callback: (v) => `${String(v).replace('.', ',')} %`,
                     },
+                    grid: { color: t.filet },
+                    border: { display: false },
                 },
             },
         },
@@ -107,32 +137,40 @@ function dessiner(): void {
 onMounted(() => {
     dessiner();
     impression.addEventListener('change', redimensionner);
+    // Le thème change par la classe « dark » de <html> : on redessine.
+    observateur = new MutationObserver(dessiner);
+    observateur.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class'],
+    });
 });
 watch(() => props.courbe, dessiner);
 onBeforeUnmount(() => {
     impression.removeEventListener('change', redimensionner);
+    observateur?.disconnect();
     graphique?.destroy();
 });
 </script>
 
 <template>
-    <div class="flex h-full w-full flex-col">
+    <div ref="conteneur" class="flex h-full w-full flex-col">
         <div class="relative min-h-0 flex-1">
             <canvas
                 ref="canvas"
                 role="img"
-                aria-label="Courbe du PAR90 sur tout l'historique, avec la limite"
+                :aria-label="`Courbe du PAR90 sur tout l'historique, avec la ${courbe.libelleLimite.toLowerCase()}`"
             />
         </div>
         <ul
-            class="mt-1 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[11px] text-neutral-600"
+            class="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-encre-2"
+            :class="compacte ? 'text-[8pt]' : 'text-xs'"
         >
             <li class="flex items-center gap-1.5">
-                <span class="inline-block h-0.5 w-5 bg-slate-500" />PAR90
+                <span class="inline-block h-px w-5 bg-encre-2" />PAR90
             </li>
             <li class="flex items-center gap-1.5">
                 <span
-                    class="inline-block w-5 border-t-2 border-dashed border-slate-500"
+                    class="inline-block w-5 border-t border-dashed border-encre-2"
                 />{{ courbe.libelleLimite }}
             </li>
             <li
@@ -142,12 +180,16 @@ onBeforeUnmount(() => {
             >
                 <span
                     class="point inline-block size-2.5 rounded-full"
-                    :style="{ backgroundColor: l.couleur }"
+                    :class="{
+                        'bg-alerte': l.couleur === 'alerte',
+                        'bg-vigilance': l.couleur === 'vigilance',
+                        'bg-encre': l.couleur === 'neutre',
+                    }"
                 />{{ l.libelle }}
             </li>
             <li class="flex items-center gap-1.5">
                 <span
-                    class="inline-block size-3 rounded-full border-[3px] border-blue-600 bg-white"
+                    class="inline-block size-3 rounded-full border-[3px] border-prusse"
                 />Mois affiché
             </li>
         </ul>
