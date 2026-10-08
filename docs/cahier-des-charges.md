@@ -150,7 +150,7 @@ Aucune de ces valeurs n'est écrite dans le code.
 
 - Les taux sont stockés avec six décimales, le seuil du bond avec huit, les montants en ariary entiers.
 - Toute comparaison à un seuil utilise la valeur stockée, jamais la valeur arrondie affichée. Le seuil du bond est arrondi à 8 décimales avant la comparaison.
-- Affichage : deux décimales pour les taux et les écarts, trois pour le seuil du bond, montants en milliards d'ariary avec deux décimales.
+- Affichage : deux décimales pour les taux et les écarts, trois pour le seuil du bond, une pour les parts des retards de plus de 180 jours et de plus d'un an dans le PAR90, montants en milliards d'ariary avec deux décimales.
 
 ## 6. Niveaux d'alerte et statut
 

@@ -50,6 +50,17 @@ class Parametre extends Model
             ?? self::create([...self::depuisConfig(), 'date_effet' => Carbon::today()]);
     }
 
+    /** Nom affiché de l'institution, sans créer de jeu de paramètres. */
+    public static function nomInstitution(): string
+    {
+        return self::query()
+            ->whereDate('date_effet', '<=', Carbon::today())
+            ->orderByDesc('date_effet')
+            ->orderByDesc('id')
+            ->value('nom_institution')
+            ?? (string) config('alerte.nom_institution');
+    }
+
     public function versDomaine(): Parametres
     {
         return Parametres::depuisConfig($this->only(['limite_par90', 'seuil_hausse_3m', 'centile_bond', 'minimum_bonds', 'horizon_verification']));
