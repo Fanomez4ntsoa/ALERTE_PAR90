@@ -6,8 +6,9 @@ import type { DecisionAffichee } from '@/types/registre';
 /** Une décision du registre : affichage, et au besoin compléter ou annuler. */
 const props = defineProps<{ decision: DecisionAffichee }>();
 
-const ouvert = ref<'completer' | 'annuler' | null>(null);
+const ouvert = ref<'completer' | 'corriger' | 'annuler' | null>(null);
 const complement = useForm({ resultat: '' });
+const correction = useForm({ resultat: props.decision.resultat ?? '' });
 const annulation = useForm({ motif: '' });
 
 const styleEtat: Record<DecisionAffichee['etat'], string> = {
@@ -19,6 +20,15 @@ const styleEtat: Record<DecisionAffichee['etat'], string> = {
 function completer(): void {
     if (props.decision.urlCompleter) {
         complement.patch(props.decision.urlCompleter, {
+            preserveScroll: true,
+            onSuccess: () => (ouvert.value = null),
+        });
+    }
+}
+
+function corriger(): void {
+    if (props.decision.urlCorriger) {
+        correction.patch(props.decision.urlCorriger, {
             preserveScroll: true,
             onSuccess: () => (ouvert.value = null),
         });
@@ -76,7 +86,11 @@ function annuler(): void {
         </p>
 
         <div
-            v-if="decision.urlCompleter || decision.urlAnnuler"
+            v-if="
+                decision.urlCompleter ||
+                decision.urlCorriger ||
+                decision.urlAnnuler
+            "
             class="mt-1 flex gap-3 text-xs print:hidden"
         >
             <button
@@ -86,6 +100,14 @@ function annuler(): void {
                 @click="ouvert = ouvert === 'completer' ? null : 'completer'"
             >
                 Compléter
+            </button>
+            <button
+                v-if="decision.urlCorriger"
+                type="button"
+                class="underline hover:text-neutral-900"
+                @click="ouvert = ouvert === 'corriger' ? null : 'corriger'"
+            >
+                Corriger le résultat
             </button>
             <button
                 v-if="decision.urlAnnuler"
@@ -120,6 +142,34 @@ function annuler(): void {
                 class="self-start rounded bg-neutral-800 px-3 py-1 text-xs text-white disabled:opacity-50"
             >
                 Enregistrer le résultat
+            </button>
+        </form>
+
+        <form
+            v-if="ouvert === 'corriger'"
+            class="mt-2 flex flex-col gap-1 print:hidden"
+            @submit.prevent="corriger"
+        >
+            <label
+                :for="`correction-${decision.id}`"
+                class="text-xs font-medium"
+                >Résultat corrigé (l'ancien reste dans le journal)</label
+            >
+            <textarea
+                :id="`correction-${decision.id}`"
+                v-model="correction.resultat"
+                rows="2"
+                class="rounded border border-neutral-300 px-2 py-1 text-sm"
+            />
+            <p v-if="correction.errors.resultat" class="text-xs text-red-700">
+                {{ correction.errors.resultat }}
+            </p>
+            <button
+                type="submit"
+                :disabled="correction.processing"
+                class="self-start rounded bg-neutral-800 px-3 py-1 text-xs text-white disabled:opacity-50"
+            >
+                Enregistrer la correction
             </button>
         </form>
 

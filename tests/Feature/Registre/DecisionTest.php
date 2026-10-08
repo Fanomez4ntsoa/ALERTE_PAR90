@@ -20,8 +20,8 @@ use Tests\Support\FabriqueFichier;
 
 beforeEach(function () {
     Storage::fake(ServiceImport::DISQUE_ARCHIVE);
-    app(ServiceImport::class)->importer(FabriqueFichier::ecrire(FabriqueFichier::serie('2024-01', 8)));
-    $this->direction = User::factory()->create(['name' => 'Direction']);
+    app(ServiceImport::class)->importer(FabriqueFichier::ecrire(FabriqueFichier::serie('2024-01', 8)), analyste());
+    $this->direction = User::factory()->direction()->create(['name' => 'Direction']);
     $this->actingAs($this->direction);
 });
 
@@ -176,10 +176,10 @@ it("refuse d'annuler un import quand une décision existe sur l'un de ses mois",
     // Même annulée, la décision reste inscrite au registre et bloque l'annulation.
     $this->patch(route('decisions.annuler', Decision::sole()), ['motif' => 'Doublon']);
 
-    expect(fn () => app(ServiceImport::class)->annulerDernier())
+    expect(fn () => app(ServiceImport::class)->annulerDernier(analyste()))
         ->toThrow(AnnulationRefusee::class, 'Annulation refusée : 1 décision(s) inscrite(s) au registre pour 2024-06.');
 
-    $this->artisan('alerte:annuler-import', ['--force' => true])
+    $this->artisan('alerte:annuler-import', ['--utilisateur' => analyste()->email, '--force' => true])
         ->expectsOutputToContain('Annulation refusée')
         ->assertFailed();
 

@@ -1,9 +1,10 @@
 <?php
 
-namespace Tests\Feature\Settings;
+namespace Tests\Feature\Admin;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Fortify\Features;
 use Tests\TestCase;
 
 class ProfileUpdateTest extends TestCase
@@ -61,39 +62,22 @@ class ProfileUpdateTest extends TestCase
         $this->assertNotNull($user->refresh()->email_verified_at);
     }
 
-    public function test_user_can_delete_their_account()
+    /** Étape 6 : un compte ne peut plus se supprimer lui-même ; pas de gestion des utilisateurs. */
+    public function test_account_deletion_is_not_available()
     {
         $user = User::factory()->create();
 
-        $response = $this
-            ->actingAs($user)
-            ->delete(route('profile.destroy'), [
-                'password' => 'password',
-            ]);
-
-        $response
-            ->assertSessionHasNoErrors()
-            ->assertRedirect(route('home'));
-
-        $this->assertGuest();
-        $this->assertNull($user->fresh());
-    }
-
-    public function test_correct_password_must_be_provided_to_delete_account()
-    {
-        $user = User::factory()->create();
-
-        $response = $this
-            ->actingAs($user)
-            ->from(route('profile.edit'))
-            ->delete(route('profile.destroy'), [
-                'password' => 'wrong-password',
-            ]);
-
-        $response
-            ->assertSessionHasErrors('password')
-            ->assertRedirect(route('profile.edit'));
+        $this->actingAs($user)
+            ->delete('/admin/profile', ['password' => 'password'])
+            ->assertStatus(405);
 
         $this->assertNotNull($user->fresh());
+    }
+
+    /** Étape 6 : double authentification et passkeys désactivées dans la configuration. */
+    public function test_two_factor_and_passkeys_are_disabled()
+    {
+        $this->assertFalse(Features::enabled(Features::twoFactorAuthentication()));
+        $this->assertFalse(Features::enabled(Features::passkeys()));
     }
 }

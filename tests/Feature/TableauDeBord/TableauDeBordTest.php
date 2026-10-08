@@ -21,7 +21,7 @@ afterEach(function () {
 
 function chargerSerie(int $nombre = 6): void
 {
-    app(ServiceImport::class)->importer(FabriqueFichier::ecrire(FabriqueFichier::serie('2024-01', $nombre)));
+    app(ServiceImport::class)->importer(FabriqueFichier::ecrire(FabriqueFichier::serie('2024-01', $nombre)), analyste());
 }
 
 it('envoie les visiteurs non connectés vers la connexion', function () {
@@ -97,14 +97,22 @@ it('ne montre que les cellules de générations connues à la clôture affichée
         ->and($lignes['avr. 23']['cellules'][0])->toBe('n.r.');
 });
 
-it('crée un utilisateur de démonstration qui peut se connecter', function () {
+it('crée un compte analyste et un compte direction qui peuvent se connecter', function () {
+    User::factory()->sansRole()->create(['email' => UtilisateurDemoSeeder::ANCIEN_EMAIL]);
     $this->seed(UtilisateurDemoSeeder::class);
     $this->seed(UtilisateurDemoSeeder::class);
 
-    expect(User::query()->where('email', UtilisateurDemoSeeder::EMAIL)->count())->toBe(1)
-        ->and(User::query()->where('email', UtilisateurDemoSeeder::EMAIL)->first()->hasVerifiedEmail())->toBeTrue();
+    expect(User::query()->where('email', UtilisateurDemoSeeder::ANCIEN_EMAIL)->exists())->toBeFalse()
+        ->and(User::query()->count())->toBe(2);
 
-    $this->post(route('login.store'), ['email' => UtilisateurDemoSeeder::EMAIL, 'password' => UtilisateurDemoSeeder::MOT_DE_PASSE])
-        ->assertRedirect(route('dashboard', absolute: false));
-    $this->assertAuthenticated();
+    foreach (UtilisateurDemoSeeder::COMPTES as $email => $compte) {
+        $utilisateur = User::query()->where('email', $email)->sole();
+        expect($utilisateur->role)->toBe($compte['role'])
+            ->and($utilisateur->hasVerifiedEmail())->toBeTrue();
+
+        $this->post(route('login.store'), ['email' => $email, 'password' => $compte['mot_de_passe']])
+            ->assertRedirect(route('dashboard', absolute: false));
+        $this->assertAuthenticatedAs($utilisateur);
+        auth()->logout();
+    }
 });

@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Decision;
+use App\Models\Import;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -40,6 +42,12 @@ class HandleInertiaRequests extends Middleware
             'name' => config('app.name'),
             'auth' => [
                 'user' => $request->user(),
+                // Ce que l'interface affiche ; le serveur vérifie de toute façon (403).
+                'droits' => $request->user() === null ? null : [
+                    'role' => $request->user()->role?->libelle(),
+                    'importer' => $request->user()->can('create', Import::class),
+                    'decider' => $request->user()->can('create', Decision::class),
+                ],
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];

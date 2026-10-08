@@ -4,8 +4,7 @@ import { ChevronLeft, ChevronRight, LogOut, Settings } from '@lucide/vue';
 import { computed } from 'vue';
 import BlocRegistre from '@/components/BlocRegistre.vue';
 import CourbePar90 from '@/components/CourbePar90.vue';
-import { logout } from '@/routes';
-import { edit as editProfile } from '@/routes/profile';
+import { admin, logout } from '@/routes';
 import type { Registre } from '@/types/registre';
 
 /*
@@ -116,7 +115,7 @@ function changerMois(evenement: Event): void {
     <Head
         :title="
             tableau
-                ? `Tableau de bord — ${tableau.mois.libelle}`
+                ? `Tableau de bord, ${tableau.mois.libelle}`
                 : 'Tableau de bord'
         "
     />
@@ -190,14 +189,11 @@ function changerMois(evenement: Event): void {
             >
                 <span v-if="utilisateur">{{ utilisateur }}</span>
                 <Link
-                    :href="editProfile()"
+                    :href="admin()"
                     class="inline-flex items-center gap-1 hover:text-neutral-900"
-                    title="Paramètres du compte"
                 >
-                    <Settings class="size-4" aria-hidden="true" /><span
-                        class="sr-only"
-                        >Paramètres</span
-                    >
+                    <Settings class="size-4" aria-hidden="true" />
+                    Administration
                 </Link>
                 <Link
                     :href="logout()"
@@ -236,7 +232,7 @@ function changerMois(evenement: Event): void {
                     <p
                         class="text-xs font-medium tracking-wide uppercase opacity-90"
                     >
-                        Niveau — {{ tableau.mois.libelle }}
+                        Niveau de {{ tableau.mois.libelle }}
                     </p>
                     <p class="text-3xl leading-tight font-bold">
                         {{ tableau.bandeau.libelle }}

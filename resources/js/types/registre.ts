@@ -12,12 +12,13 @@ export type DecisionAffichee = {
     complement: string | null;
     annulation: string | null;
     urlCompleter: string | null;
+    urlCorriger: string | null;
     urlAnnuler: string | null;
 };
 
 export type Registre = {
     decisions: DecisionAffichee[];
-    urlAjout: string;
+    urlAjout: string | null;
     moisSignal: string;
     signal: {
         mois: string;

@@ -6,13 +6,16 @@ use App\Enums\EtatDecision;
 use App\Models\Cloture;
 use App\Models\Decision;
 use App\Models\User;
+use App\Tableau\Format;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Registre des décisions (section 9) : ajout, complément, annulation.
- * Chaque opération est journalisée ; une décision ne se supprime jamais.
+ * Registre des décisions (section 9) : ajout, complément, correction, annulation.
+ * Réservé à la direction (section 11). Chaque opération est journalisée avec
+ * le mois concerné ; une décision ne se supprime jamais.
  */
 class ServiceDecisions
 {
@@ -21,6 +24,8 @@ class ServiceDecisions
      */
     public function ajouter(Cloture $cloture, array $donnees, User $auteur): Decision
     {
+        Gate::forUser($auteur)->authorize('create', Decision::class);
+
         return DB::transaction(function () use ($cloture, $donnees, $auteur) {
             $decision = $cloture->decisions()->create([
                 ...$donnees,
@@ -28,10 +33,9 @@ class ServiceDecisions
                 'auteur_id' => $auteur->id,
             ]);
             $this->journaliser($decision, $auteur, 'ajout', 'Décision ajoutée', [
-                'mois' => $cloture->mois->format('Y-m'),
                 'action' => $decision->action,
                 'responsable' => $decision->responsable,
-                'echeance' => $decision->echeance->format('d/m/Y'),
+                'echeance' => Format::date($decision->echeance),
             ]);
 
             return $decision;
@@ -40,6 +44,7 @@ class ServiceDecisions
 
     public function completer(Decision $decision, string $resultat, User $utilisateur): Decision
     {
+        Gate::forUser($utilisateur)->authorize('completer', $decision);
         $this->exigerOuverte($decision, 'resultat');
 
         return DB::transaction(function () use ($decision, $resultat, $utilisateur) {
@@ -55,8 +60,31 @@ class ServiceDecisions
         });
     }
 
+    /** Corrige le résultat d'une décision complétée ; l'ancienne valeur reste dans le journal. */
+    public function corriger(Decision $decision, string $resultat, User $utilisateur): Decision
+    {
+        Gate::forUser($utilisateur)->authorize('corriger', $decision);
+        if ($decision->etat !== EtatDecision::COMPLETEE) {
+            throw ValidationException::withMessages([
+                'resultat' => 'Seul le résultat d\'une décision complétée peut être corrigé.',
+            ]);
+        }
+
+        return DB::transaction(function () use ($decision, $resultat, $utilisateur) {
+            $ancien = $decision->resultat;
+            $decision->update(['resultat' => $resultat]);
+            $this->journaliser($decision, $utilisateur, 'correction', 'Résultat de décision corrigé', [
+                'ancien_resultat' => $ancien,
+                'nouveau_resultat' => $resultat,
+            ]);
+
+            return $decision;
+        });
+    }
+
     public function annuler(Decision $decision, string $motif, User $utilisateur): Decision
     {
+        Gate::forUser($utilisateur)->authorize('annuler', $decision);
         $this->exigerOuverte($decision, 'motif');
 
         return DB::transaction(function () use ($decision, $motif, $utilisateur) {
@@ -88,7 +116,7 @@ class ServiceDecisions
             ->event($evenement)
             ->performedOn($decision)
             ->causedBy($utilisateur)
-            ->withProperties($proprietes)
+            ->withProperties(['mois' => $decision->cloture->mois->format('Y-m'), ...$proprietes])
             ->log($message);
     }
 }

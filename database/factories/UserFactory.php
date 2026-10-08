@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\Role;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -33,7 +34,24 @@ class UserFactory extends Factory
             'two_factor_secret' => null,
             'two_factor_recovery_codes' => null,
             'two_factor_confirmed_at' => null,
+            'role' => Role::ANALYSTE,
         ];
+    }
+
+    public function analyste(): static
+    {
+        return $this->state(fn () => ['role' => Role::ANALYSTE]);
+    }
+
+    public function direction(): static
+    {
+        return $this->state(fn () => ['role' => Role::DIRECTION]);
+    }
+
+    /** Compte sans rôle : il ne voit rien. */
+    public function sansRole(): static
+    {
+        return $this->state(fn () => ['role' => null]);
     }
 
     /**

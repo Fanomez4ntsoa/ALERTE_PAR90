@@ -47,6 +47,22 @@ final class Format
         return $ariary === null ? self::NON_RENSEIGNE : self::nombre(bcdiv((string) $ariary, '1000000000', 12), 2).self::ESPACE.'Md'.self::ESPACE.'Ar';
     }
 
+    /** Date sans heure (échéance, date d'effet) : « 30/09/2026 ». */
+    public static function date(?CarbonInterface $date): string
+    {
+        return $date === null ? self::NON_RENSEIGNE : $date->format('d/m/Y');
+    }
+
+    /** Horodatage stocké en UTC, affiché dans le fuseau de l'institution : « 08/10/2026 20:36 ». */
+    public static function horodatage(?CarbonInterface $moment, bool $avecHeure = true): string
+    {
+        if ($moment === null) {
+            return self::NON_RENSEIGNE;
+        }
+
+        return $moment->copy()->setTimezone((string) config('alerte.fuseau_horaire'))->format($avecHeure ? 'd/m/Y H:i' : 'd/m/Y');
+    }
+
     /** « juillet 2026 ». */
     public static function mois(CarbonInterface $mois): string
     {

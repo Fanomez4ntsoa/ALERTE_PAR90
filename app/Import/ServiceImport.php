@@ -13,9 +13,11 @@ use App\Models\Generation;
 use App\Models\Import;
 use App\Models\Parametre;
 use App\Models\User;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\File;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 use Throwable;
@@ -37,13 +39,27 @@ class ServiceImport
      * puis figé. Si rien n'est à ajouter, aucun import n'est enregistré.
      *
      * @throws FichierRefuse
+     * @throws AuthorizationException si l'utilisateur n'est pas analyste
      */
-    public function importer(string $chemin, ?User $utilisateur = null, ?string $nomFichier = null): RapportImport
+    public function importer(string $chemin, User $utilisateur, ?string $nomFichier = null): RapportImport
     {
+        Gate::forUser($utilisateur)->authorize('create', Import::class);
+
         $nomFichier ??= basename($chemin);
         $enBase = Cloture::query()->orderBy('mois')->get()->keyBy(fn (Cloture $c) => $c->mois->format('Y-m'));
 
-        $fichier = $this->lecteur->lire($chemin, Carbon::today(), $enBase->keys()->last());
+        try {
+            $fichier = $this->lecteur->lire($chemin, Carbon::today(), $enBase->keys()->last());
+        } catch (FichierRefuse $e) {
+            // Un fichier refusé est journalisé, sans être archivé.
+            activity('import')
+                ->event('refus')
+                ->causedBy($utilisateur)
+                ->withProperties(['fichier' => $nomFichier, 'erreurs' => $e->erreurs])
+                ->log("Fichier refusé : {$nomFichier}");
+
+            throw $e;
+        }
         $avertissements = $fichier->avertissements;
 
         $nouvelles = [];
@@ -93,9 +109,14 @@ class ServiceImport
     /**
      * Annule le dernier import actif : ses mois et ses générations sont retirés,
      * ainsi que les vérifications des mois antérieurs qui reposaient sur eux.
+     *
+     * @throws AuthorizationException si l'utilisateur n'est pas analyste
+     * @throws AnnulationRefusee si une décision est inscrite sur l'un des mois
      */
-    public function annulerDernier(?User $utilisateur = null): Import
+    public function annulerDernier(User $utilisateur): Import
     {
+        Gate::forUser($utilisateur)->authorize('annuler', Import::class);
+
         $import = Import::query()->where('etat', EtatImport::ACTIF)->orderByDesc('id')->first()
             ?? throw new RuntimeException('Aucun import actif à annuler.');
 
@@ -125,7 +146,7 @@ class ServiceImport
 
             $import->clotures()->delete();
             $import->generations()->delete();
-            $import->update(['etat' => EtatImport::ANNULE, 'annule_le' => Carbon::now(), 'annule_par' => $utilisateur?->id]);
+            $import->update(['etat' => EtatImport::ANNULE, 'annule_le' => Carbon::now(), 'annule_par' => $utilisateur->id]);
 
             activity('import')
                 ->event('annulation')
@@ -149,7 +170,7 @@ class ServiceImport
         array $nouvelles,
         array $nouvellesGenerations,
         array $avertissements,
-        ?User $utilisateur,
+        User $utilisateur,
         string $nomFichier,
         string $archive,
         string $empreinte,
@@ -159,7 +180,7 @@ class ServiceImport
         $moisAjoutes = array_map(fn (LigneMensuelle $l) => $l->mois, $nouvelles);
 
         $import = Import::create([
-            'user_id' => $utilisateur?->id,
+            'user_id' => $utilisateur->id,
             'nom_fichier' => $nomFichier,
             'chemin_archive' => $archive,
             'empreinte' => $empreinte,

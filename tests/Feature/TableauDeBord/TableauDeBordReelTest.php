@@ -15,7 +15,7 @@ use Tests\Support\DonneesReelles;
 beforeEach(function () {
     Storage::fake(ServiceImport::DISQUE_ARCHIVE);
     if (DonneesReelles::disponibles()) {
-        app(ServiceImport::class)->importer(DonneesReelles::CHEMIN);
+        app(ServiceImport::class)->importer(DonneesReelles::CHEMIN, analyste());
     }
     $this->actingAs(User::factory()->create());
 });

@@ -6,13 +6,14 @@ use App\Models\Cloture;
 use App\Models\Parametre;
 use App\Tableau\Format;
 use App\Tableau\TableauDeBord;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class TableauDeBordController extends Controller
 {
     /** Affiche une clôture ; sans mois dans l'URL, la plus récente. */
-    public function __invoke(?string $mois = null): Response
+    public function __invoke(Request $request, ?string $mois = null): Response
     {
         $clotures = Cloture::query()->with('parametres')->orderBy('mois')->get();
 
@@ -42,7 +43,7 @@ class TableauDeBordController extends Controller
         return Inertia::render('TableauDeBord', [
             'institution' => Parametre::nomInstitution(),
             'navigation' => $navigation,
-            'tableau' => $cloture === null ? null : (new TableauDeBord($cloture, $clotures))->donnees(),
+            'tableau' => $cloture === null ? null : (new TableauDeBord($cloture, $clotures, $request->user()))->donnees(),
         ]);
     }
 }

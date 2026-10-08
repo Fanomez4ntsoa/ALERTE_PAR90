@@ -9,8 +9,8 @@ use App\Enums\ModeCalcul;
 use App\Models\Cloture;
 use App\Models\Decision;
 use App\Models\Generation;
+use App\Models\User;
 use App\Registre\LibelleVerification;
-use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 
 /**
@@ -53,6 +53,7 @@ final class TableauDeBord
     public function __construct(
         private readonly Cloture $cloture,
         private readonly Collection $clotures,
+        private readonly User $utilisateur,
     ) {}
 
     /** @return array<string, mixed> */
@@ -105,7 +106,7 @@ final class TableauDeBord
             'courbe' => [
                 'etiquettes' => $this->clotures->map(fn (Cloture $c) => Format::moisCourt($c->mois))->values()->all(),
                 'valeurs' => $this->clotures->map(fn (Cloture $c) => (float) $c->par90)->values()->all(),
-                'infobulles' => $this->clotures->map(fn (Cloture $c) => Format::mois($c->mois).' : '.Format::taux($c->par90).' — '.$c->niveau->libelle())->values()->all(),
+                'infobulles' => $this->clotures->map(fn (Cloture $c) => Format::mois($c->mois).' : '.Format::taux($c->par90).', '.mb_strtolower($c->niveau->libelle()))->values()->all(),
                 'limite' => (float) $this->cloture->parametres->limite_par90,
                 'libelleLimite' => 'Limite '.$this->limite(),
                 'indexMois' => $index === false ? null : $index,
@@ -222,7 +223,7 @@ final class TableauDeBord
                     'hausse' => '↑',
                     'baisse' => '↓',
                     'stable' => '=',
-                    null => '—',
+                    null => '·',
                 },
             ];
         }
@@ -297,7 +298,9 @@ final class TableauDeBord
 
         return [
             'decisions' => $this->decisions($this->cloture, true),
-            'urlAjout' => route('decisions.store', ['mois' => $this->cle($this->cloture)]),
+            'urlAjout' => $this->utilisateur->can('create', Decision::class)
+                ? route('decisions.store', ['mois' => $this->cle($this->cloture)])
+                : null,
             'moisSignal' => Format::mois($this->cloture->mois->subMonthsNoOverflow($horizon)),
             'signal' => $signal,
             'urlRecapitulatif' => route('recapitulatif'),
@@ -307,7 +310,6 @@ final class TableauDeBord
     /** @return list<array<string, mixed>> */
     private function decisions(Cloture $cloture, bool $modifiables): array
     {
-        $date = fn (?CarbonInterface $d) => $d?->format('d/m/Y');
 
         return array_values($cloture->decisions()
             ->with(['auteur', 'completeur', 'annulateur'])
@@ -318,16 +320,20 @@ final class TableauDeBord
                 'id' => $d->id,
                 'action' => $d->action,
                 'responsable' => $d->responsable,
-                'echeance' => $date($d->echeance),
+                'echeance' => Format::date($d->echeance),
                 'etat' => $d->etat->value,
                 'libelleEtat' => $d->etat->libelle(),
                 'resultat' => $d->resultat,
                 'motifAnnulation' => $d->motif_annulation,
-                'saisie' => 'Saisie le '.$date($d->created_at).' par '.$d->auteur->name,
-                'complement' => $d->complete_le === null ? null : 'Complétée le '.$date($d->complete_le).' par '.$d->completeur?->name,
-                'annulation' => $d->annule_le === null ? null : 'Annulée le '.$date($d->annule_le).' par '.$d->annulateur?->name,
-                'urlCompleter' => $modifiables && $d->etat === EtatDecision::OUVERTE ? route('decisions.completer', $d) : null,
-                'urlAnnuler' => $modifiables && $d->etat === EtatDecision::OUVERTE ? route('decisions.annuler', $d) : null,
+                'saisie' => 'Saisie le '.Format::horodatage($d->created_at, false).' par '.$d->auteur->name,
+                'complement' => $d->complete_le === null ? null : 'Complétée le '.Format::horodatage($d->complete_le, false).' par '.$d->completeur?->name,
+                'annulation' => $d->annule_le === null ? null : 'Annulée le '.Format::horodatage($d->annule_le, false).' par '.$d->annulateur?->name,
+                'urlCompleter' => $modifiables && $d->etat === EtatDecision::OUVERTE && $this->utilisateur->can('completer', $d)
+                    ? route('decisions.completer', $d) : null,
+                'urlCorriger' => $modifiables && $d->etat === EtatDecision::COMPLETEE && $this->utilisateur->can('corriger', $d)
+                    ? route('decisions.corriger', $d) : null,
+                'urlAnnuler' => $modifiables && $d->etat === EtatDecision::OUVERTE && $this->utilisateur->can('annuler', $d)
+                    ? route('decisions.annuler', $d) : null,
             ])
             ->all());
     }

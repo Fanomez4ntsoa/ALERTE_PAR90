@@ -29,7 +29,7 @@ afterEach(function () {
 
 function importer(string $chemin): RapportImport
 {
-    return app(ServiceImport::class)->importer($chemin);
+    return app(ServiceImport::class)->importer($chemin, analyste());
 }
 
 /** État complet des tables écrites par l'import. */
@@ -234,11 +234,11 @@ it('fige une clôture, sauf ses deux colonnes de vérification', function () {
 });
 
 it('passe par la commande artisan', function () {
-    $this->artisan('alerte:importer', ['fichier' => FabriqueFichier::ecrire(FabriqueFichier::serie('2024-01', 6))])
+    $this->artisan('alerte:importer', ['--utilisateur' => analyste()->email, 'fichier' => FabriqueFichier::ecrire(FabriqueFichier::serie('2024-01', 6))])
         ->expectsOutputToContain('6 mois ajouté(s) de 2024-01 à 2024-06')
         ->assertSuccessful();
 
-    $this->artisan('alerte:importer', ['fichier' => FabriqueFichier::ecrire(FabriqueFichier::serie(), sansColonnes: ['par60'])])
+    $this->artisan('alerte:importer', ['--utilisateur' => analyste()->email, 'fichier' => FabriqueFichier::ecrire(FabriqueFichier::serie(), sansColonnes: ['par60'])])
         ->expectsOutputToContain('Fichier refusé, aucune ligne créée')
         ->assertFailed();
 

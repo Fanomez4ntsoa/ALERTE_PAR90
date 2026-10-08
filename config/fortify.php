@@ -161,17 +161,10 @@ return [
     */
 
     'features' => [
-        Features::registration(),
+        // Inscription publique fermée : les comptes viennent du seeder (étape 5).
         Features::resetPasswords(),
         Features::emailVerification(),
-        Features::twoFactorAuthentication([
-            'confirm' => true,
-            'confirmPassword' => true,
-            // 'window' => 0
-        ]),
-        Features::passkeys([
-            'confirmPassword' => true,
-        ]),
+        // Double authentification et passkeys désactivées (étape 6) ; leurs migrations restent.
     ],
 
 ];

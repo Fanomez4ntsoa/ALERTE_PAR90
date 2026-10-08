@@ -28,7 +28,7 @@ $sansFichier = ! DonneesReelles::disponibles();
 $raison = 'data/donnees_chap3.xlsx absent : tests sur données réelles ignorés.';
 
 it('charge les 33 mois du fichier réel avec leurs niveaux', function () {
-    $this->artisan('alerte:importer', ['fichier' => DonneesReelles::CHEMIN])->assertSuccessful();
+    $this->artisan('alerte:importer', ['--utilisateur' => analyste()->email, 'fichier' => DonneesReelles::CHEMIN])->assertSuccessful();
 
     $niveaux = Cloture::query()->get()->countBy(fn (Cloture $c) => $c->niveau->value);
 
@@ -53,7 +53,7 @@ it('charge les 33 mois du fichier réel avec leurs niveaux', function () {
 })->skip($sansFichier, $raison);
 
 it('stocke pour chaque mois les valeurs rendues par le moteur', function () {
-    app(ServiceImport::class)->importer(DonneesReelles::CHEMIN);
+    app(ServiceImport::class)->importer(DonneesReelles::CHEMIN, analyste());
     $juillet = Cloture::query()->whereDate('mois', '2026-07-01')->first();
 
     expect($juillet->niveau)->toBe(Niveau::NORMAL)
@@ -64,14 +64,14 @@ it('stocke pour chaque mois les valeurs rendues par le moteur', function () {
 })->skip($sansFichier, $raison);
 
 it("n'ajoute ni ne modifie rien au réimport du fichier réel", function () {
-    app(ServiceImport::class)->importer(DonneesReelles::CHEMIN);
+    app(ServiceImport::class)->importer(DonneesReelles::CHEMIN, analyste());
     $avant = [
         Cloture::query()->orderBy('id')->get()->map->getAttributes()->all(),
         Generation::query()->orderBy('id')->get()->map->getAttributes()->all(),
     ];
     $this->travel(5)->minutes();
 
-    $this->artisan('alerte:importer', ['fichier' => DonneesReelles::CHEMIN])
+    $this->artisan('alerte:importer', ['--utilisateur' => analyste()->email, 'fichier' => DonneesReelles::CHEMIN])
         ->expectsOutputToContain('la base est inchangée')
         ->assertSuccessful();
 

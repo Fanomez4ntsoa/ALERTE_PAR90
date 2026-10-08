@@ -46,6 +46,12 @@ class Import extends Model
         return $this->belongsTo(User::class);
     }
 
+    /** @return BelongsTo<User, $this> */
+    public function annulateur(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'annule_par');
+    }
+
     /** @return HasMany<Cloture, $this> */
     public function clotures(): HasMany
     {

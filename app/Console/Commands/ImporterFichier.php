@@ -5,11 +5,12 @@ namespace App\Console\Commands;
 use App\Import\FichierRefuse;
 use App\Import\ServiceImport;
 use App\Models\User;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 
-#[Signature('alerte:importer {fichier : Chemin du fichier modèle .xlsx} {--utilisateur= : E-mail de l\'utilisateur qui importe}')]
+#[Signature('alerte:importer {fichier : Chemin du fichier modèle .xlsx} {--utilisateur= : E-mail de l\'analyste qui importe (obligatoire)}')]
 #[Description('Importe un fichier modèle : contrôles, archivage, calcul et création des clôtures')]
 class ImporterFichier extends Command
 {
@@ -22,18 +23,20 @@ class ImporterFichier extends Command
             return self::FAILURE;
         }
 
-        $utilisateur = null;
-        if ($email = $this->option('utilisateur')) {
-            $utilisateur = User::query()->where('email', $email)->first();
-            if ($utilisateur === null) {
-                $this->error("Utilisateur inconnu : {$email}");
+        $email = (string) $this->option('utilisateur');
+        $utilisateur = $email === '' ? null : User::query()->where('email', $email)->first();
+        if ($utilisateur === null) {
+            $this->error($email === '' ? 'Indiquez l\'utilisateur : --utilisateur=adresse@exemple' : "Utilisateur inconnu : {$email}");
 
-                return self::FAILURE;
-            }
+            return self::FAILURE;
         }
 
         try {
             $rapport = $service->importer($chemin, $utilisateur);
+        } catch (AuthorizationException) {
+            $this->error("{$email} n'a pas le rôle analyste : import refusé.");
+
+            return self::FAILURE;
         } catch (FichierRefuse $e) {
             $this->error('Fichier refusé, aucune ligne créée :');
             foreach ($e->erreurs as $erreur) {

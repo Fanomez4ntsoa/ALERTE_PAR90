@@ -16,6 +16,9 @@ const fondNiveau: Record<string, string> = {
 };
 
 function ajouter(): void {
+    if (!props.registre.urlAjout) {
+        return;
+    }
     ajout.post(props.registre.urlAjout, {
         preserveScroll: true,
         onSuccess: () => ajout.reset(),
@@ -61,6 +64,7 @@ function ajouter(): void {
                 </p>
 
                 <form
+                    v-if="registre.urlAjout"
                     class="mt-3 grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 rounded-md border border-dashed border-neutral-300 p-3 text-sm print:hidden"
                     @submit.prevent="ajouter"
                 >

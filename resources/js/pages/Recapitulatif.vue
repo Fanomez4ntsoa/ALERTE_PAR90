@@ -51,7 +51,7 @@ const fondNiveau: Record<string, string> = {
         >
             <div class="mr-auto leading-tight">
                 <p class="text-base font-semibold">
-                    Vérification à trois mois — récapitulatif
+                    Vérification à trois mois : récapitulatif
                 </p>
                 <p class="text-xs text-neutral-600">{{ institution }}</p>
             </div>

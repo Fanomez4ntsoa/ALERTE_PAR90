@@ -9,7 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 
-/** Registre des décisions (section 9). Pas encore de rôles : tout utilisateur connecté saisit. */
+/** Registre des décisions (section 9) ; les droits sont vérifiés par ServiceDecisions (direction). */
 class DecisionController extends Controller
 {
     /** Messages en français : le projet n'installe pas de paquet de traductions. */
@@ -42,6 +42,14 @@ class DecisionController extends Controller
     {
         $donnees = $request->validate(['resultat' => ['required', 'string', 'max:2000']], self::MESSAGES, ['resultat' => 'résultat']);
         $this->service->completer($decision, $donnees['resultat'], $request->user());
+
+        return to_route('dashboard', ['mois' => $decision->cloture->mois->format('Y-m')]);
+    }
+
+    public function corriger(Request $request, Decision $decision): RedirectResponse
+    {
+        $donnees = $request->validate(['resultat' => ['required', 'string', 'max:2000']], self::MESSAGES, ['resultat' => 'résultat']);
+        $this->service->corriger($decision, $donnees['resultat'], $request->user());
 
         return to_route('dashboard', ['mois' => $decision->cloture->mois->format('Y-m')]);
     }

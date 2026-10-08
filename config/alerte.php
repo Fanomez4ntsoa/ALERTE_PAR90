@@ -35,6 +35,9 @@ return [
     // Au-delà, avertissement (section 4).
     'tolerance_par90_mt' => 1,
 
+    // Fuseau horaire d'affichage des dates et heures ; elles sont stockées en UTC.
+    'fuseau_horaire' => env('ALERTE_FUSEAU_HORAIRE', 'Indian/Antananarivo'),
+
     // Nom affiché de l'institution, défini dans .env.
     'nom_institution' => env('ALERTE_INSTITUTION', 'Institution'),
 

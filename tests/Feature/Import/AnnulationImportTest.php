@@ -10,6 +10,7 @@ use App\Models\Cloture;
 use App\Models\Generation;
 use App\Models\Import;
 use App\Models\User;
+use App\Tableau\Format;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Activitylog\Models\Activity;
 use Tests\Support\FabriqueFichier;
@@ -17,8 +18,8 @@ use Tests\Support\FabriqueFichier;
 beforeEach(function () {
     Storage::fake(ServiceImport::DISQUE_ARCHIVE);
     $serie = FabriqueFichier::serie('2024-01', 22);
-    $this->premier = app(ServiceImport::class)->importer(FabriqueFichier::ecrire(array_slice($serie, 0, 20, true)))->import;
-    $this->second = app(ServiceImport::class)->importer(FabriqueFichier::ecrire($serie))->import;
+    $this->premier = app(ServiceImport::class)->importer(FabriqueFichier::ecrire(array_slice($serie, 0, 20, true)), analyste())->import;
+    $this->second = app(ServiceImport::class)->importer(FabriqueFichier::ecrire($serie), analyste())->import;
 });
 
 afterEach(function () {
@@ -62,29 +63,29 @@ it('retire les mois du dernier import et les vérifications qui en dépendent', 
 
 it("annule ensuite l'import précédent, puis refuse quand il n'en reste plus", function () {
     $service = app(ServiceImport::class);
-    $service->annulerDernier();
-    $service->annulerDernier();
+    $service->annulerDernier(analyste());
+    $service->annulerDernier(analyste());
 
     expect(Cloture::count())->toBe(0)
         ->and(Generation::count())->toBe(0)
         ->and(Import::query()->where('etat', EtatImport::ANNULE)->count())->toBe(2);
 
-    expect(fn () => $service->annulerDernier())->toThrow(RuntimeException::class, 'Aucun import actif à annuler.');
-    $this->artisan('alerte:annuler-import', ['--force' => true])->assertFailed();
+    expect(fn () => $service->annulerDernier(analyste()))->toThrow(RuntimeException::class, 'Aucun import actif à annuler.');
+    $this->artisan('alerte:annuler-import', ['--utilisateur' => analyste()->email, '--force' => true])->assertFailed();
 });
 
 it("permet de réimporter les mois d'un import annulé", function () {
-    app(ServiceImport::class)->annulerDernier();
+    app(ServiceImport::class)->annulerDernier(analyste());
 
-    $rapport = app(ServiceImport::class)->importer(FabriqueFichier::ecrire(FabriqueFichier::serie('2024-01', 22)));
+    $rapport = app(ServiceImport::class)->importer(FabriqueFichier::ecrire(FabriqueFichier::serie('2024-01', 22)), analyste());
 
     expect($rapport->moisAjoutes)->toBe(['2025-09', '2025-10'])
         ->and(verification('2025-06')['hausse_reelle_3m'])->not->toBeNull();
 });
 
 it('demande confirmation avant d\'annuler', function () {
-    $this->artisan('alerte:annuler-import')
-        ->expectsConfirmation("Annuler Import {$this->second->id} ({$this->second->nom_fichier}, {$this->second->created_at->format('d/m/Y H:i')}) : 2 mois ?", 'no')
+    $this->artisan('alerte:annuler-import', ['--utilisateur' => analyste()->email])
+        ->expectsConfirmation("Annuler Import {$this->second->id} ({$this->second->nom_fichier}, ".Format::horodatage($this->second->created_at).') : 2 mois ?', 'no')
         ->assertFailed();
 
     expect($this->second->refresh()->etat)->toBe(EtatImport::ACTIF);
