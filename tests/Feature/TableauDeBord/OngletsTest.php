@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Étape 6 : quatre onglets, onglet et mois dans l'adresse, aucune ressource
+ * Étape 6 : trois onglets, onglet et mois dans l'adresse, aucune ressource
  * chargée depuis un domaine externe. Données inventées.
  */
 
@@ -32,34 +32,40 @@ it('répond à chaque onglet à son adresse', function (string $adresse, string 
 
     expect($props['onglet'])->toBe($onglet)
         ->and($props['tableau']['mois']['valeur'])->toBe('2024-03')
-        ->and(collect($props['onglets'])->pluck('libelle')->all())->toBe(['Synthèse', 'Compréhension', 'Générations', 'Registre']);
+        ->and(collect($props['onglets'])->pluck('libelle')->all())->toBe(['Synthèse', 'Compréhension', 'Registre']);
 })->with([
     ['/dashboard/2024-03', 'synthese'],
     ['/dashboard/2024-03/synthese', 'synthese'],
     ['/dashboard/2024-03/comprehension', 'comprehension'],
-    ['/dashboard/2024-03/generations', 'generations'],
     ['/dashboard/2024-03/registre', 'registre'],
 ]);
 
 it('garde le mois et l\'onglet au rechargement et en changeant de mois', function () {
-    $premier = proprietes('/dashboard/2024-03/generations');
-    $recharge = proprietes('/dashboard/2024-03/generations');
+    $premier = proprietes('/dashboard/2024-03/comprehension');
+    $recharge = proprietes('/dashboard/2024-03/comprehension');
 
-    expect($recharge['onglet'])->toBe('generations')
+    expect($recharge['onglet'])->toBe('comprehension')
         ->and($recharge['tableau']['mois']['valeur'])->toBe('2024-03')
         ->and($recharge['navigation'])->toBe($premier['navigation'])
-        ->and($recharge['navigation']['precedent']['url'])->toBe(url('/dashboard/2024-02/generations'))
-        ->and($recharge['navigation']['suivant']['url'])->toBe(url('/dashboard/2024-04/generations'))
-        ->and(collect($recharge['navigation']['liste'])->pluck('url')->every(fn ($u) => str_ends_with($u, '/generations')))->toBeTrue()
+        ->and($recharge['navigation']['precedent']['url'])->toBe(url('/dashboard/2024-02/comprehension'))
+        ->and($recharge['navigation']['suivant']['url'])->toBe(url('/dashboard/2024-04/comprehension'))
+        ->and(collect($recharge['navigation']['liste'])->pluck('url')->every(fn ($u) => str_ends_with($u, '/comprehension')))->toBeTrue()
         ->and(collect($recharge['onglets'])->pluck('url', 'cle')->all())->toBe([
             'synthese' => url('/dashboard/2024-03'),
             'comprehension' => url('/dashboard/2024-03/comprehension'),
-            'generations' => url('/dashboard/2024-03/generations'),
             'registre' => url('/dashboard/2024-03/registre'),
         ]);
 
     // Sur la Synthèse, les adresses restent sans suffixe.
     expect(proprietes('/dashboard/2024-03')['navigation']['precedent']['url'])->toBe(url('/dashboard/2024-02'));
+});
+
+it("redirige l'ancien onglet Générations vers Compréhension", function () {
+    $this->get('/dashboard/2024-03/generations')
+        ->assertStatus(301)
+        ->assertRedirect(url('/dashboard/2024-03/comprehension'));
+
+    expect(proprietes('/dashboard/2024-03/comprehension')['tableau']['generations']['lignes'])->toHaveCount(12);
 });
 
 it('refuse un onglet inconnu', function () {

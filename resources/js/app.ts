@@ -1,11 +1,10 @@
 import { createInertiaApp } from '@inertiajs/vue3';
 import { initializeTheme } from '@/composables/useAppearance';
-import AppLayout from '@/layouts/AppLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import AdminLayout from '@/layouts/admin/Layout.vue';
 import { initializeFlashToast } from '@/lib/flashToast';
 
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+const appName = import.meta.env.VITE_APP_NAME || 'Alerte PAR90';
 
 void createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
@@ -13,13 +12,14 @@ void createInertiaApp({
         switch (true) {
             case name === 'TableauDeBord':
             case name === 'Recapitulatif':
+            case name === 'Erreur':
                 return null;
             case name.startsWith('auth/'):
                 return AuthLayout;
             case name.startsWith('admin/'):
-                return [AppLayout, AdminLayout];
+                return AdminLayout;
             default:
-                return AppLayout;
+                return null;
         }
     },
     withApp: (app) => {

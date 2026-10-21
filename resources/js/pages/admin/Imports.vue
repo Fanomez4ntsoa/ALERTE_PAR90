@@ -4,6 +4,7 @@ import { ref } from 'vue';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { CircleAlert, FileSpreadsheet, Undo2 } from '@lucide/vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,9 +18,10 @@ import {
     DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { imports as routeImports } from '@/routes/admin';
 import { annuler, store } from '@/routes/admin/imports';
+import { aplatNiveau } from '@/types/tableau';
+import type { TeinteNiveau } from '@/types/tableau';
 
 /** Section Imports (analyste) : envoi, compte rendu, historique, annulation. */
 
@@ -39,7 +41,7 @@ type CompteRendu = {
     statut: 'importe' | 'inchange' | 'refuse';
     fichier: string;
     mode?: string | null;
-    mois?: { mois: string; niveau: string; couleur: string }[];
+    mois?: { mois: string; niveau: string; couleur: TeinteNiveau }[];
     generations?: number;
     ecartees?: number;
     avertissements?: string[];
@@ -104,14 +106,29 @@ function annulerDernier(): void {
 
         <form class="flex flex-wrap items-end gap-3" @submit.prevent="envoyer">
             <div class="grid gap-2">
-                <Label for="fichier">Fichier</Label>
-                <Input
-                    id="fichier"
-                    type="file"
-                    accept=".xlsx"
-                    class="max-w-md"
-                    @change="choisir"
-                />
+                <span class="text-sm font-medium">Fichier</span>
+                <!-- Libellé en français, quelle que soit la langue du navigateur. -->
+                <label
+                    for="fichier"
+                    class="flex h-9 max-w-md cursor-pointer items-center gap-3 rounded-md border border-filet bg-feuille pr-3 text-sm focus-within:outline-2 focus-within:outline-prusse"
+                >
+                    <span
+                        class="flex h-full items-center gap-2 border-r border-filet px-3 font-medium"
+                    >
+                        <FileSpreadsheet class="size-4" aria-hidden="true" />
+                        Choisir un fichier
+                    </span>
+                    <span class="truncate text-encre-2">{{
+                        formulaire.fichier?.name ?? 'Aucun fichier choisi'
+                    }}</span>
+                    <input
+                        id="fichier"
+                        type="file"
+                        accept=".xlsx"
+                        class="sr-only"
+                        @change="choisir"
+                    />
+                </label>
                 <InputError :message="formulaire.errors.fichier" />
             </div>
             <Button
@@ -122,8 +139,9 @@ function annulerDernier(): void {
         </form>
 
         <!-- Compte rendu du dernier envoi -->
-        <Alert v-if="compteRendu()?.statut === 'refuse'" variant="destructive">
-            <AlertTitle
+        <Alert v-if="compteRendu()?.statut === 'refuse'">
+            <CircleAlert aria-hidden="true" />
+            <AlertTitle class="font-semibold"
                 >Fichier refusé : {{ compteRendu()?.fichier }}. Aucune ligne
                 créée.</AlertTitle
             >
@@ -157,7 +175,12 @@ function annulerDernier(): void {
                         v-for="m in compteRendu()?.mois"
                         :key="m.mois"
                         class="mr-2 inline-block"
-                        >{{ m.mois }} : <strong>{{ m.niveau }}</strong></span
+                        >{{ m.mois }} :
+                        <span
+                            class="niveau rounded px-1.5 py-px text-[12px] font-semibold"
+                            :class="aplatNiveau[m.couleur]"
+                            >{{ m.niveau }}</span
+                        ></span
                     >
                 </p>
                 <p>
@@ -179,13 +202,12 @@ function annulerDernier(): void {
             </AlertDescription>
         </Alert>
 
-        <Alert
-            v-if="annulation()"
-            :variant="
-                annulation()?.statut === 'refuse' ? 'destructive' : 'default'
-            "
-        >
-            <AlertTitle>{{
+        <Alert v-if="annulation()">
+            <CircleAlert
+                v-if="annulation()?.statut === 'refuse'"
+                aria-hidden="true"
+            />
+            <AlertTitle class="font-semibold">{{
                 annulation()?.statut === 'refuse'
                     ? 'Annulation refusée'
                     : 'Import annulé'
@@ -241,9 +263,10 @@ function annulerDernier(): void {
             />
             <Dialog v-model:open="confirmation">
                 <DialogTrigger as-child>
-                    <Button variant="destructive"
-                        >Annuler le dernier import</Button
-                    >
+                    <Button variant="outline">
+                        <Undo2 class="size-4" aria-hidden="true" />
+                        Annuler le dernier import
+                    </Button>
                 </DialogTrigger>
                 <DialogContent>
                     <DialogHeader>
@@ -254,14 +277,22 @@ function annulerDernier(): void {
                     </DialogHeader>
                     <DialogFooter class="gap-2">
                         <DialogClose as-child>
-                            <Button variant="secondary">Ne pas annuler</Button>
+                            <Button variant="ghost">Garder cet import</Button>
                         </DialogClose>
-                        <Button variant="destructive" @click="annulerDernier"
-                            >Confirmer l'annulation</Button
-                        >
+                        <Button variant="outline" @click="annulerDernier">
+                            <Undo2 class="size-4" aria-hidden="true" />
+                            Annuler cet import
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
         </div>
     </div>
 </template>
+
+<style scoped>
+.niveau {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+}
+</style>

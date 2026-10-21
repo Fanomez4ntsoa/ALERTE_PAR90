@@ -94,7 +94,10 @@ const { isCurrentOrParentUrl } = useCurrentUrl();
                         {{ item.title }}
                     </Link>
                 </nav>
-                <p v-if="droits?.role" class="mt-4 px-3 text-[12px] text-encre-2">
+                <p
+                    v-if="droits?.role"
+                    class="mt-4 px-3 text-[12px] text-encre-2"
+                >
                     Rôle : {{ droits.role }}
                 </p>
             </aside>
